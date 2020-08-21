@@ -1,6 +1,6 @@
 import React from 'react';
 import TextField from '@material-ui/core/TextField';
-import Autocomplete from '@material-ui/lab/Autocomplete';
+import Autocomplete, {createFilterOptions} from '@material-ui/lab/Autocomplete';
 import './App.css';
 import data from './data/data.json';
 
@@ -21,6 +21,7 @@ function App() {
           setBaseSystem(newValue);
         }}
         options={systemIds}
+        filterOptions={createFilterOptions({limit: 100})}
         getOptionLabel={(option) => `${systems[option][0]} > ${systems[option][1]} > ${systems[option][2]}`}
         style={{ width: 300 }}
         renderInput={(params) => <TextField {...params} label="Base System" variant="outlined" />}
