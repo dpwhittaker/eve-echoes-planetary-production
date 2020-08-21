@@ -27,6 +27,13 @@ Your app is ready to be deployed!
 
 See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
+### `npm run deploy`
+
+See the documentation at [gh-pages](https://github.com/tschaub/gh-pages) for more information.
+
+This command will deploy the site to https://dpwhittaker.github.io/eve-echoes-planetary-production/ immediately.
+Make sure it works under npm start first!
+
 ### `npm run eject`
 
 **Note: this is a one-way operation. Once you `eject`, you can’t go back!**
