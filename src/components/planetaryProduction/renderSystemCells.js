@@ -2,34 +2,40 @@ export default function renderSystemCells() {
   return [
     // render pattern:
     // {
-    //   cell: (row) => row.nameOfAttribute, // specify attribute
+    //   accessor: 'attributeName' // specify attribute
     //   display: (data) => `${data}`, // optional: specify cell's display
     //   header: 'Header Name', // specify column header,
+    //   sortable: true, // optional; boolean
     //   width: 100, // optional: specify column width (integers are in px)
     // },
     {
-      getAttribute: (data) => data.resource,
+      accessor: 'resource',
       header: 'Resource',
+      sortable: true,
       width: '29%',
     },
     {
-      getAttribute: (data) => data.planet,
+      accessor: 'planet',
       header: 'Planet',
+      sortable: true,
       width: '29%',
     },
     {
-      getAttribute: (data) => data.security,
+      accessor: 'security',
       header: 'Security',
+      sortable: true,
       width: '14%',
     },
     {
-      getAttribute: (data) => data.jumps,
+      accessor: 'jumps',
       header: 'Jumps',
+      sortable: true,
       width: '14%',
     },
     {
-      getAttribute: (data) => data.richness,
+      accessor: 'richness',
       header: 'Richness',
+      sortable: true,
       width: '14%',
     },
   ];

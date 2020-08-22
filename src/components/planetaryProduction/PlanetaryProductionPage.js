@@ -2,7 +2,6 @@ import React, { useMemo, useEffect } from 'react';
 import { Grid, Typography } from '@material-ui/core';
 
 import * as query from '../../data/query';
-import resourceRichnessTypes from '../../constants/resourceRichnessTypes';
 import {
   Autocomplete,
   SelectWithChips,
@@ -35,7 +34,7 @@ function PlanetaryProductionPage() {
 
   const matches = useMemo(() => {
     return query.matchingProduction(baseSystem, distanceRange, securityRange, richnessRange, resources);
-  }, [baseSystem, distanceRange, securityRange, richnessRange]);
+  }, [baseSystem, distanceRange, securityRange, resources, richnessRange]);
 
   const distanceMarks = useMemo(() => {
     const marks = [...Array(Math.round(distanceMax / 10)).keys()].map((value) => ({ value: value * 10, label: value * 10 }));

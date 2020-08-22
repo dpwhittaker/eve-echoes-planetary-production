@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
   Grid,
@@ -10,13 +10,32 @@ import {
   TableHead,
   TablePagination,
   TableRow,
+  TableSortLabel,
   Typography,
 } from '@material-ui/core';
 
-function renderHeaders(cells, data) {
-  return cells.map((cell, index) => (
-    <TableCell key={index}>{cell.header}</TableCell>
-  ));
+function renderHeaders({ cells, data, direction, onChangeSort, orderBy }) {
+  return cells.map((cell, index) => {
+    if (cell.sortable) {
+      const active = orderBy === cell.accessor;
+      return (
+        <TableCell
+          key={cell.accessor}
+          sortDirection={active ? direction : false}
+        >
+          <TableSortLabel
+            active={active}
+            direction={active ? direction : 'asc'}
+            onClick={() => onChangeSort(cell.accessor, active ? (direction === 'asc' ? 'desc' : 'asc') : 'asc')}
+          >
+            {cell.header}
+          </TableSortLabel>
+        </TableCell>
+      );
+    } else {
+      return <TableCell key={index}>{cell.header}</TableCell>;
+    }
+  });
 }
 
 function renderRows({ cells, data, page, rowsPerPage }) {
@@ -25,7 +44,7 @@ function renderRows({ cells, data, page, rowsPerPage }) {
   return data.slice(startIndex, endIndex).map((row, rowIndex) => (
     <TableRow key={rowIndex}>
       {cells.map((cell, cellIndex) => {
-        const attribute = cell.getAttribute(row);
+        const attribute = row[cell.accessor];
         const display = cell.display ? cell.display(attribute) : attribute;
 
         const style = {};
@@ -45,8 +64,21 @@ function renderRows({ cells, data, page, rowsPerPage }) {
 }
 
 function DataTable({ cells, data, title }) {
+  const [direction, setDirection] = useState('asc');
+  const [orderBy, setOrderBy] = useState(cells.length ? cells[0].accessor : undefined);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+
+  const sortedData = useMemo(() => {
+    return [...data].sort((a, b) => {
+      const modifier = direction === 'asc' ? 1 : -1;
+      if (a[orderBy] === b[orderBy]) {
+        return 0;
+      } else {
+        return a[orderBy] > b[orderBy] ? 1 * modifier : -1 * modifier;
+      }
+    });
+  }, [data, direction, orderBy]);
 
   function handleChangeRowsPerPage(event) {
     const startIndex = page * rowsPerPage;
@@ -54,6 +86,11 @@ function DataTable({ cells, data, title }) {
     const newPage = startIndex / newRowsPerPage;
     setPage(newPage);
     setRowsPerPage(newRowsPerPage);
+  }
+
+  function handleChangeSort(orderBy, direction) {
+    setOrderBy(orderBy);
+    setDirection(direction);
   }
 
   return (
@@ -64,11 +101,22 @@ function DataTable({ cells, data, title }) {
           <Table>
             <TableHead>
               <TableRow>
-                {renderHeaders(cells, data)}
+                {renderHeaders({
+                  cells,
+                  data: sortedData,
+                  direction,
+                  onChangeSort: handleChangeSort,
+                  orderBy
+                })}
               </TableRow>
             </TableHead>
             <TableBody>
-              {renderRows({ cells, data, page, rowsPerPage })}
+              {renderRows({
+                cells,
+                data: sortedData,
+                page,
+                rowsPerPage
+              })}
             </TableBody>
           </Table>
         </TableContainer>
