@@ -1,23 +1,19 @@
 {
   "files": {
-    "main.css": "//dpwhittaker.github.io/eve-echoes-planetary-production/static/css/main.5f361e03.chunk.css",
-    "main.js": "//dpwhittaker.github.io/eve-echoes-planetary-production/static/js/main.cc45248a.chunk.js",
-    "main.js.map": "//dpwhittaker.github.io/eve-echoes-planetary-production/static/js/main.cc45248a.chunk.js.map",
-    "runtime-main.js": "//dpwhittaker.github.io/eve-echoes-planetary-production/static/js/runtime-main.eda916d6.js",
-    "runtime-main.js.map": "//dpwhittaker.github.io/eve-echoes-planetary-production/static/js/runtime-main.eda916d6.js.map",
-    "static/js/2.6df5f44d.chunk.js": "//dpwhittaker.github.io/eve-echoes-planetary-production/static/js/2.6df5f44d.chunk.js",
-    "static/js/2.6df5f44d.chunk.js.map": "//dpwhittaker.github.io/eve-echoes-planetary-production/static/js/2.6df5f44d.chunk.js.map",
-    "index.html": "//dpwhittaker.github.io/eve-echoes-planetary-production/index.html",
-    "precache-manifest.f7abb1122de0803fa253bc4467e90940.js": "//dpwhittaker.github.io/eve-echoes-planetary-production/precache-manifest.f7abb1122de0803fa253bc4467e90940.js",
-    "service-worker.js": "//dpwhittaker.github.io/eve-echoes-planetary-production/service-worker.js",
-    "static/css/main.5f361e03.chunk.css.map": "//dpwhittaker.github.io/eve-echoes-planetary-production/static/css/main.5f361e03.chunk.css.map",
-    "static/js/2.6df5f44d.chunk.js.LICENSE.txt": "//dpwhittaker.github.io/eve-echoes-planetary-production/static/js/2.6df5f44d.chunk.js.LICENSE.txt",
-    "static/media/logo.svg": "//dpwhittaker.github.io/eve-echoes-planetary-production/static/media/logo.5d5d9eef.svg"
+    "main.js": "/eve-echoes-planetary-production/static/js/main.976a8513.chunk.js",
+    "main.js.map": "/eve-echoes-planetary-production/static/js/main.976a8513.chunk.js.map",
+    "runtime-main.js": "/eve-echoes-planetary-production/static/js/runtime-main.675e2ad0.js",
+    "runtime-main.js.map": "/eve-echoes-planetary-production/static/js/runtime-main.675e2ad0.js.map",
+    "static/js/2.f078ba36.chunk.js": "/eve-echoes-planetary-production/static/js/2.f078ba36.chunk.js",
+    "static/js/2.f078ba36.chunk.js.map": "/eve-echoes-planetary-production/static/js/2.f078ba36.chunk.js.map",
+    "index.html": "/eve-echoes-planetary-production/index.html",
+    "precache-manifest.b363c366b7c1a85baa4765d76847ea7d.js": "/eve-echoes-planetary-production/precache-manifest.b363c366b7c1a85baa4765d76847ea7d.js",
+    "service-worker.js": "/eve-echoes-planetary-production/service-worker.js",
+    "static/js/2.f078ba36.chunk.js.LICENSE.txt": "/eve-echoes-planetary-production/static/js/2.f078ba36.chunk.js.LICENSE.txt"
   },
   "entrypoints": [
-    "static/js/runtime-main.eda916d6.js",
-    "static/js/2.6df5f44d.chunk.js",
-    "static/css/main.5f361e03.chunk.css",
-    "static/js/main.cc45248a.chunk.js"
+    "static/js/runtime-main.675e2ad0.js",
+    "static/js/2.f078ba36.chunk.js",
+    "static/js/main.976a8513.chunk.js"
   ]
 }
