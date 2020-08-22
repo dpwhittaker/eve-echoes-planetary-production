@@ -1,6 +1,6 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "37a046cea96b184ad5c02f04ee23bd43",
+    "revision": "63b3d0c7236f69bb228c2089544672fe",
     "url": "//dpwhittaker.github.io/eve-echoes-planetary-production/index.html"
   },
   {
