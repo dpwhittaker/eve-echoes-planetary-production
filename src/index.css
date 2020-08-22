@@ -11,3 +11,39 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.app-container {
+  margin: auto;
+  padding: 16px;
+}
+
+.input-container {
+  align-items: stretch;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.input-wrapper {
+  align-items: flex-end;
+  display: flex;
+}
+
+.input-wrapper.slider {
+  flex-direction: row;
+  height: 72px;
+}
+
+@media only screen and (min-width: 421px) {
+  .input-wrapper {
+    min-width: 360px;
+    margin: 0 8px;
+  }
+}
+
+@media only screen and (max-width: 420px) {
+  .input-container {
+    flex-direction: column;
+  }
+}
