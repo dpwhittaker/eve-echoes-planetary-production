@@ -12,7 +12,8 @@ const COL = {
 
     Resource: 0,
     Richness: 1,
-    Output: 2
+    Output: 2,
+    AbsRich: 3
 };
 
 export default COL;

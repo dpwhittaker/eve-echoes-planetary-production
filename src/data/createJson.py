@@ -55,10 +55,12 @@ for d in planets['data']:
 
 resourceNames = []
 resourceToIndex = {}
+maxOutput = {}
 for d in resources['data']:
     if d[1] not in resourceNames:
         resourceToIndex[d[1]] = len(resourceNames)
         resourceNames.append(d[1])
+        maxOutput[d[1]] = 0
 
 richness = ['Poor','Medium','Rich','Perfect']
 richnessToIndex = {'Poor':0,'Medium':1,'Rich':2,'Perfect':3}
@@ -82,14 +84,25 @@ for d in planets['data']:
     d.append([])
 
 del resources['header'][0]
+resources['header'].append('AbsRich')
 planets['header'].append(resources['header'])
 for d in resources['data']:
     planet = planetIdToIndex[d[0]]
     del d[0]
+    d[2] = float(d[2])
+    if d[2] > maxOutput[d[0]]:
+        maxOutput[d[0]] = d[2]
+    if d[2] > maxRich[d[0]] and d[1] == "Rich":
+        maxRich[d[0]] = d[2]
+    if d[2] < minPerfect[d[0]] and d[1] == "Perfect":
+        minPerfect[d[0]] = d[2]
+    rcount[d[0]] += 1
     if compress:
         d[0] = resourceToIndex[d[0]]
         d[1] = richnessToIndex[d[1]]
-    d[2] = float(d[2])
+
+for d in resources['data']:
+    d.append(round(d[2]/maxOutput[d[0]],2))
     planets['data'][planet][-1].append(d)
 
 del planets['header'][0]
@@ -100,13 +113,16 @@ for d in planets['data']:
     systems['data'][system][-1].append(d)
 
 data = systems
+data['maxOuptut'] = maxOutput
+
+for r in data['resources']:
+    print(r, 'maxOutput', maxOutput[r], 'count', rcount[r])
 
 if compress:
     data.update({
         'regions': regions,
         'constellations': constellations,
         'planetTypes': planetTypes,
-        'resourceNames': resourceNames,
         'richness': richness
         })
 
