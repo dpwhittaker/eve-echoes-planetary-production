@@ -39,14 +39,42 @@ export function systemsWithinRange(from, range, security) {
     if (!minRange) minRange = 0;
     let [jumps] = calculatePaths(from, maxRange);
     let sys = [];
-    for (let jump in jumps) {
-        if (jumps[jump] >= minRange &&
-            systems[jump][c.Security] >= security[0] &&
-            systems[jump][c.Security] <= security[1]
+    for (let system in jumps) {
+        if (jumps[system] >= minRange &&
+            systems[system][c.Security] >= minSecurity &&
+            systems[system][c.Security] <= maxSecurity
             )
-            sys.push(parseInt(jump));
+            sys.push({system: parseInt(system), jumps: jumps[system]});
     }
     return sys;
+}
+
+export function matchingProduction(from, range, security, richness, resourceList) {
+    let inRange = systemsWithinRange(from, range, security);
+    let [minRich, maxRich] = richness;
+    let matches = [];
+    for (let {system: id, jumps} of inRange) {
+        let system = systems[id];
+        let planets = system[c.Planets];
+        for (let planet of planets) {
+            let resources = planet[c.Resources];
+            for (let resource of resources) {
+                if (!resourceList.includes(resource[c.Resource]))
+                    continue;
+                let absRich = resource[c.AbsRich];
+                if (absRich >= minRich && absRich <= maxRich) {
+                    matches.push({
+                        resource: resource[c.Resource],
+                        planet: planet[c.Planet],
+                        security: system[c.Security],
+                        jumps,
+                        richness: absRich
+                    });
+                }
+            }
+        }
+    }
+    return matches;
 }
 
 export function getSystems() {
@@ -62,7 +90,7 @@ export function getSystems() {
 }
 
 export function getResources() {
-    return data.resources;
+    return Object.keys(data.maxOutput);
 }
 
 export function getResourceMaxOutput() {

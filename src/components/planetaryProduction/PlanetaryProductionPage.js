@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Grid, Typography } from '@material-ui/core';
 
 import * as query from '../../data/query';
@@ -11,20 +11,31 @@ import {
 import { Table } from '../common/table';
 import renderSystemCells from './renderSystemCells';
 
+function usePersistedState(key, defaultValue) {
+  const [state, setState] = React.useState(
+    () => JSON.parse(localStorage.getItem(key)) || defaultValue
+  );
+  useEffect(() => {
+    localStorage.setItem(key, JSON.stringify(state));
+  }, [key, state]);
+  return [state, setState];
+}
+
 function PlanetaryProductionPage() {
-  const [baseSystem, setBaseSystem] = useState(0);
-  const [distanceRange, setDistanceRange] = useState([0, 10]);
-  const [securityRange, setSecurityRange] = useState([0.5, 1.0]);
-  const [resources, setResources] = useState(["Lustering Alloy"]);
-  const [resourceRichness, setResourceRichness] = useState([]);
+  const [baseSystem, setBaseSystem] = usePersistedState("baseSystem", 0);
+  const [distanceRange, setDistanceRange] = usePersistedState("distanceRange", [0, 10]);
+  const [securityRange, setSecurityRange] = usePersistedState("securityRange", [0.5, 1.0]);
+  const [richnessRange, setRichnessRange] = usePersistedState("richnessRange", [90, 200]);
+  const [resources, setResources] = usePersistedState("resources", ["Lustering Alloy"]);
+  console.log(baseSystem, distanceRange, securityRange, richnessRange, resources);
   
   const distanceMax = useMemo(() => query.longestPath(baseSystem), [baseSystem]);
   const resourceNames = useMemo(() => query.getResources(), []);
   const systems = useMemo(() => query.getSystems(), []);
 
-  const inRange = useMemo(() => {
-    return query.systemsWithinRange(baseSystem, distanceRange, securityRange);
-  }, [baseSystem, distanceRange, securityRange]);
+  const matches = useMemo(() => {
+    return query.matchingProduction(baseSystem, distanceRange, securityRange, richnessRange, resources);
+  }, [baseSystem, distanceRange, securityRange, richnessRange]);
 
   const distanceMarks = useMemo(() => {
     const marks = [...Array(Math.round(distanceMax / 10)).keys()].map((value) => ({ value: value * 10, label: value * 10 }));
@@ -78,17 +89,19 @@ function PlanetaryProductionPage() {
         value={resources}
       />
 
-      <SelectWithChips
-        id="resource-richness"
+      <Slider
         label="Resource Richness"
-        onChange={(event, value) => setResourceRichness(value)}
-        options={resourceRichnessTypes}
-        value={resourceRichness}
+        marks={[{ value:25, label: '25' }, { value: 100, label: 'high sec' }, { value:133, label:'low sec' }, { value:200, label: '200' }]}
+        max={200}
+        min={25}
+        onChange={(event, value) => setRichnessRange(value)}
+        step={1}
+        value={richnessRange}
       />
 
       <Table
         cells={renderSystemCells()}
-        data={systems}
+        data={matches}
         title="Systems"
       />
 

@@ -88,21 +88,23 @@ resources['header'].append('AbsRich')
 planets['header'].append(resources['header'])
 for d in resources['data']:
     planet = planetIdToIndex[d[0]]
-    del d[0]
-    d[2] = float(d[2])
-    if d[2] > maxOutput[d[0]]:
-        maxOutput[d[0]] = d[2]
-    if d[2] > maxRich[d[0]] and d[1] == "Rich":
-        maxRich[d[0]] = d[2]
-    if d[2] < minPerfect[d[0]] and d[1] == "Perfect":
-        minPerfect[d[0]] = d[2]
-    rcount[d[0]] += 1
+    system = planets['data'][planet][0]
+    security = systems['data'][system][3]
+    d[3] = float(d[3])
+    if security > 0.5 and d[3] > maxOutput[d[1]]:
+        print(d[1], ':', d[3])
+        maxOutput[d[1]] = d[3]
+    elif d[3] / 2 > maxOutput[d[1]]:
+        print('nullsec', d[1], ':', d[3] / 2)
+        maxOutput[d[1]] = d[3] / 2
     if compress:
-        d[0] = resourceToIndex[d[0]]
-        d[1] = richnessToIndex[d[1]]
+        d[1] = resourceToIndex[d[1]]
+        d[2] = richnessToIndex[d[2]]
 
 for d in resources['data']:
-    d.append(round(d[2]/maxOutput[d[0]],2))
+    planet = planetIdToIndex[d[0]]
+    del d[0]
+    d.append(int(d[2]/maxOutput[d[0]]*100))
     planets['data'][planet][-1].append(d)
 
 del planets['header'][0]
@@ -113,10 +115,7 @@ for d in planets['data']:
     systems['data'][system][-1].append(d)
 
 data = systems
-data['maxOuptut'] = maxOutput
-
-for r in data['resources']:
-    print(r, 'maxOutput', maxOutput[r], 'count', rcount[r])
+data['maxOutput'] = maxOutput
 
 if compress:
     data.update({

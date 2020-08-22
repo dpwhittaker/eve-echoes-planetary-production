@@ -8,19 +8,29 @@ export default function renderSystemCells() {
     //   width: 100, // optional: specify column width (integers are in px)
     // },
     {
-      getAttribute: (data) => data.region,
-      header: 'Region',
-      width: '30%',
+      getAttribute: (data) => data.resource,
+      header: 'Resource',
+      width: '29%',
     },
     {
-      getAttribute: (data) => data.constellation,
-      header: 'Constellation',
-      width: '30%',
+      getAttribute: (data) => data.planet,
+      header: 'Planet',
+      width: '29%',
     },
     {
-      getAttribute: (data) => data.system,
-      header: 'System',
-      width: '40%',
+      getAttribute: (data) => data.security,
+      header: 'Security',
+      width: '14%',
+    },
+    {
+      getAttribute: (data) => data.jumps,
+      header: 'Jumps',
+      width: '14%',
+    },
+    {
+      getAttribute: (data) => data.richness,
+      header: 'Richness',
+      width: '14%',
     },
   ];
 }
