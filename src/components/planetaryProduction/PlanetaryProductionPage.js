@@ -11,10 +11,9 @@ import {
   SelectWithChips,
   Slider,
 } from '../common/form';
-import { PaginatedTable, VirtualizedTable } from '../common/table';
+import { VirtualizedTable } from '../common/table';
 import { Tabs } from '../common/tabs';
 import renderSystemColumns from './renderSystemColumns';
-import renderTestColumns from './renderTestColumns';
 
 function PlanetaryProductionPage() {
   const [baseSystem, setBaseSystem] = usePersistedState('baseSystem', 0);
@@ -42,14 +41,10 @@ function PlanetaryProductionPage() {
 
   const tableConfigs = useMemo(() => [
     {
+      Component: VirtualizedTable,
       data: matches,
       label: 'Systems',
-      renderCells: renderSystemColumns,
-    },
-    {
-      data: matches,
-      label: 'Test',
-      renderCells: renderTestColumns,
+      renderColumns: renderSystemColumns,
     },
   ], [matches]);
 
@@ -109,17 +104,12 @@ function PlanetaryProductionPage() {
 
       <Tabs tabs={tableConfigs}>
         {tableConfigs.map((tab) => (
-          <PaginatedTable
-            cells={tab.renderCells()}
+          <tab.Component
+            columns={tab.renderColumns()}
             data={tab.data}
           />
         ))}
-      </Tabs>
-      
-      {/* <VirtualizedTable
-        cells={tab.renderCells()}
-        data={tab.data}
-      /> */}
+      </Tabs>      
 
     </Grid>
   );

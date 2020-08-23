@@ -2,41 +2,47 @@ export default function renderSystemColumns() {
   return [
     // render pattern:
     // {
-    //   accessor: 'attributeName' // specify attribute
+    //   dataKey: 'attributeName' // specify attribute
     //   display: (data) => `${data}`, // optional: specify cell's display
-    //   header: 'Header Name', // specify column header,
+    //   label: 'Header Name', // specify column label,
     //   sortable: true, // optional; boolean
-    //   width: 100, // optional: specify column width (integers are in px)
+    // column width:
+    // - integer = px
+    // - float/fraction = percentage of screen width
+    //   width: 100, 
     // },
     {
-      accessor: 'resource',
-      header: 'Resource',
+      dataKey: 'resource',
+      label: 'Resource',
       sortable: true,
-      width: '29%',
+      width: 0.29,
     },
     {
-      accessor: 'planet',
-      header: 'Planet',
+      dataKey: 'planet',
+      label: 'Planet',
       sortable: true,
-      width: '29%',
+      width: 0.29,
     },
     {
-      accessor: 'security',
-      header: 'Security',
+      dataKey: 'security',
+      label: 'Security',
+      numeric: true,
       sortable: true,
-      width: '14%',
+      width: 0.14,
     },
     {
-      accessor: 'jumps',
-      header: 'Jumps',
+      dataKey: 'jumps',
+      label: 'Jumps',
+      numeric: true,
       sortable: true,
-      width: '14%',
+      width: 0.14,
     },
     {
-      accessor: 'richness',
-      header: 'Richness',
+      dataKey: 'richness',
+      label: 'Richness',
+      numeric: true,
       sortable: true,
-      width: '14%',
+      width: 0.14,
     },
   ];
 }

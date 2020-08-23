@@ -1,11 +1,10 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {
-  Box,
   Grid,
   Paper,
   Tab as MUITab,
   Tabs as MUITabs,
-  Typography,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 
@@ -13,6 +12,9 @@ import usePersistedState from '../../../helpers/usePersistedStorage';
 
 const useStyles = makeStyles({
   root: {
+    maxHeight: '100vh',
+  },
+  paper: {
     flexGrow: 1,
   },
 });
@@ -22,8 +24,14 @@ function Tabs({ children, tabs }) {
   const classes = useStyles();
 
   return (
-    <Grid item xs={12} md={12} lg={12}>
-      <Paper className={classes.root}>
+    <Grid
+      className={classes.root}
+      item
+      lg={12}
+      md={12}
+      xs={12}
+    >
+      <Paper className={classes.paper}>
         <MUITabs
           centered
           onChange={(event, index) => setCurrentTab(index)}
@@ -42,5 +50,15 @@ function Tabs({ children, tabs }) {
     </Grid>
   );
 }
+
+Tabs.defaultProps = {
+  children: [],
+  tabs: [],
+};
+
+Tabs.propTypes = {
+  children: PropTypes.array.isRequired,
+  tabs: PropTypes.array.isRequired,
+};
 
 export default Tabs;

@@ -2,7 +2,6 @@ import React, { useMemo, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import {
   Grid,
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -11,48 +10,49 @@ import {
   TablePagination,
   TableRow,
   TableSortLabel,
-  Typography,
 } from '@material-ui/core';
 
-function renderHeaders({ cells, data, direction, onChangeSort, orderBy }) {
-  return cells.map((cell, index) => {
-    if (cell.sortable) {
-      const active = orderBy === cell.accessor;
+function renderHeaders({ columns, data, direction, onChangeSort, orderBy }) {
+  return columns.map((column, index) => {
+    if (column.sortable) {
+      const active = orderBy === column.dataKey;
       return (
         <TableCell
-          key={cell.accessor}
+          align={column.numeric || false ? 'right' : 'left'}
+          key={column.dataKey}
           sortDirection={active ? direction : false}
         >
           <TableSortLabel
             active={active}
             direction={active ? direction : 'asc'}
-            onClick={() => onChangeSort(cell.accessor, active ? (direction === 'asc' ? 'desc' : 'asc') : 'asc')}
+            onClick={() => onChangeSort(column.dataKey, active ? (direction === 'asc' ? 'desc' : 'asc') : 'asc')}
           >
-            {cell.header}
+            {column.label}
           </TableSortLabel>
         </TableCell>
       );
     } else {
-      return <TableCell key={index}>{cell.header}</TableCell>;
+      return <TableCell key={index}>{column.label}</TableCell>;
     }
   });
 }
 
-function renderRows({ cells, data, page, rowsPerPage }) {
+function renderRows({ columns, data, page, rowsPerPage }) {
   const startIndex = page * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
   return data.slice(startIndex, endIndex).map((row, rowIndex) => (
     <TableRow key={rowIndex}>
-      {cells.map((cell, cellIndex) => {
-        const attribute = row[cell.accessor];
-        const display = cell.display ? cell.display(attribute) : attribute;
+      {columns.map((column, columnIndex) => {
+        const attribute = row[column.dataKey];
+        const display = column.display ? column.display(attribute) : attribute;
 
         const style = {};
-        if (cell.width) style.width = cell.width;
+        if (column.width) style.width = column.width;
 
         return (
           <TableCell
-            key={cellIndex}
+            align={column.numeric || false ? 'right' : 'left'}
+            key={columnIndex}
             style={style}
           >
             {display}
@@ -63,9 +63,9 @@ function renderRows({ cells, data, page, rowsPerPage }) {
   ));
 }
 
-function PaginatedTable({ cells, data, title }) {
+function PaginatedTable({ columns, data }) {
   const [direction, setDirection] = useState('asc');
-  const [orderBy, setOrderBy] = useState(cells.length ? cells[0].accessor : undefined);
+  const [orderBy, setOrderBy] = useState(columns.length ? columns[0].dataKey : undefined);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
@@ -99,54 +99,50 @@ function PaginatedTable({ cells, data, title }) {
 
   return (
     <Grid item xs={12} md={12} lg={12}>
-      <Typography variant="h6" gutterBottom>{title}</Typography>
-      <Paper>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                {renderHeaders({
-                  cells,
-                  data: sortedData,
-                  direction,
-                  onChangeSort: handleChangeSort,
-                  orderBy
-                })}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {renderRows({
-                cells,
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              {renderHeaders({
+                columns,
                 data: sortedData,
-                page,
-                rowsPerPage
+                direction,
+                onChangeSort: handleChangeSort,
+                orderBy
               })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          component="div"
-          count={data.length}
-          onChangePage={(event, value) => setPage(value)}
-          onChangeRowsPerPage={handleChangeRowsPerPage}
-          page={page}
-          rowsPerPage={rowsPerPage}
-          rowsPerPageOptions={[5, 10, 25]}
-        />
-      </Paper>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {renderRows({
+              columns,
+              data: sortedData,
+              page,
+              rowsPerPage
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      <TablePagination
+        component="div"
+        count={data.length}
+        onChangePage={(event, value) => setPage(value)}
+        onChangeRowsPerPage={handleChangeRowsPerPage}
+        page={page}
+        rowsPerPage={rowsPerPage}
+        rowsPerPageOptions={[5, 10, 25]}
+      />
     </Grid>
   );
 }
 
 PaginatedTable.defaultProps = {
-  cells: [],
+  columns: [],
   data: [],
 };
 
 PaginatedTable.propTypes = {
-  cells: PropTypes.array.isRequired,
+  columns: PropTypes.array.isRequired,
   data: PropTypes.array.isRequired,
-  title: PropTypes.string,
 };
 
 export default PaginatedTable;
