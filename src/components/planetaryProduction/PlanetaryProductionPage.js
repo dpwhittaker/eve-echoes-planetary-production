@@ -1,31 +1,27 @@
-import React, { useMemo, useEffect } from 'react';
-import { Grid, Typography } from '@material-ui/core';
+import React, { useMemo } from 'react';
+import {
+  Grid,
+  Typography,
+} from '@material-ui/core';
 
 import * as query from '../../data/query';
+import usePersistedState from '../../helpers/usePersistedStorage';
 import {
   Autocomplete,
   SelectWithChips,
   Slider,
 } from '../common/form';
-import { Table } from '../common/table';
-import renderSystemCells from './renderSystemCells';
-
-function usePersistedState(key, defaultValue) {
-  const [state, setState] = React.useState(
-    () => JSON.parse(localStorage.getItem(key)) || defaultValue
-  );
-  useEffect(() => {
-    localStorage.setItem(key, JSON.stringify(state));
-  }, [key, state]);
-  return [state, setState];
-}
+import { PaginatedTable, VirtualizedTable } from '../common/table';
+import { Tabs } from '../common/tabs';
+import renderSystemColumns from './renderSystemColumns';
+import renderTestColumns from './renderTestColumns';
 
 function PlanetaryProductionPage() {
-  const [baseSystem, setBaseSystem] = usePersistedState("baseSystem", 0);
-  const [distanceRange, setDistanceRange] = usePersistedState("distanceRange", [0, 10]);
-  const [securityRange, setSecurityRange] = usePersistedState("securityRange", [0.5, 1.0]);
-  const [richnessRange, setRichnessRange] = usePersistedState("richnessRange", [90, 200]);
-  const [resources, setResources] = usePersistedState("resources", ["Lustering Alloy"]);
+  const [baseSystem, setBaseSystem] = usePersistedState('baseSystem', 0);
+  const [distanceRange, setDistanceRange] = usePersistedState('distanceRange', [0, 10]);
+  const [securityRange, setSecurityRange] = usePersistedState('securityRange', [0.5, 1.0]);
+  const [richnessRange, setRichnessRange] = usePersistedState('richnessRange', [90, 200]);
+  const [resources, setResources] = usePersistedState('resources', ['Lustering Alloy']);
   console.log(baseSystem, distanceRange, securityRange, richnessRange, resources);
   
   const distanceMax = useMemo(() => query.longestPath(baseSystem), [baseSystem]);
@@ -43,6 +39,19 @@ function PlanetaryProductionPage() {
     }
     return marks;
   }, [distanceMax]);
+
+  const tableConfigs = useMemo(() => [
+    {
+      data: matches,
+      label: 'Systems',
+      renderCells: renderSystemColumns,
+    },
+    {
+      data: matches,
+      label: 'Test',
+      renderCells: renderTestColumns,
+    },
+  ], [matches]);
 
   return (
     <Grid container spacing={4}>
@@ -98,11 +107,19 @@ function PlanetaryProductionPage() {
         value={richnessRange}
       />
 
-      <Table
-        cells={renderSystemCells()}
-        data={matches}
-        title="Systems"
-      />
+      <Tabs tabs={tableConfigs}>
+        {tableConfigs.map((tab) => (
+          <PaginatedTable
+            cells={tab.renderCells()}
+            data={tab.data}
+          />
+        ))}
+      </Tabs>
+      
+      {/* <VirtualizedTable
+        cells={tab.renderCells()}
+        data={tab.data}
+      /> */}
 
     </Grid>
   );

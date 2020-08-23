@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import {
   Grid,
@@ -63,7 +63,7 @@ function renderRows({ cells, data, page, rowsPerPage }) {
   ));
 }
 
-function DataTable({ cells, data, title }) {
+function PaginatedTable({ cells, data, title }) {
   const [direction, setDirection] = useState('asc');
   const [orderBy, setOrderBy] = useState(cells.length ? cells[0].accessor : undefined);
   const [page, setPage] = useState(0);
@@ -93,8 +93,12 @@ function DataTable({ cells, data, title }) {
     setDirection(direction);
   }
 
+  useEffect(() => {
+    setPage(0);
+  }, [data])
+
   return (
-    <Grid item xs={12}>
+    <Grid item xs={12} md={12} lg={12}>
       <Typography variant="h6" gutterBottom>{title}</Typography>
       <Paper>
         <TableContainer>
@@ -120,28 +124,29 @@ function DataTable({ cells, data, title }) {
             </TableBody>
           </Table>
         </TableContainer>
-          <TablePagination
-            component="div"
-            count={data.length}
-            onChangePage={(event, value) => setPage(value)}
-            onChangeRowsPerPage={handleChangeRowsPerPage}
-            page={page}
-            rowsPerPage={rowsPerPage}
-            rowsPerPageOptions={[5, 10, 25]}
-          />
+        <TablePagination
+          component="div"
+          count={data.length}
+          onChangePage={(event, value) => setPage(value)}
+          onChangeRowsPerPage={handleChangeRowsPerPage}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          rowsPerPageOptions={[5, 10, 25]}
+        />
       </Paper>
     </Grid>
   );
 }
 
-DataTable.defaultProps = {
+PaginatedTable.defaultProps = {
   cells: [],
   data: [],
 };
 
-DataTable.propTypes = {
+PaginatedTable.propTypes = {
   cells: PropTypes.array.isRequired,
   data: PropTypes.array.isRequired,
+  title: PropTypes.string,
 };
 
-export default DataTable;
+export default PaginatedTable;

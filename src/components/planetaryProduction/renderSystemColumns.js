@@ -1,4 +1,4 @@
-export default function renderSystemCells() {
+export default function renderSystemColumns() {
   return [
     // render pattern:
     // {
