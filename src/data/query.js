@@ -3,7 +3,7 @@ import c from './columns.js';
 
 let systems = data.data;
 
-function calculatePaths(from, maxJumps) {
+function calculatePaths(from, maxJumps, to) {
     let start = performance.now();
     let queue = [];
     let max = 0;
@@ -18,6 +18,7 @@ function calculatePaths(from, maxJumps) {
         for (let next of system[c.Neighbors]) {
             if (!(next in jumps)) {
                 max = jumps[next] = jumps[node] + 1;
+                if (to !== undefined && next === to) return max;
                 queue.push(next);
             }
         }
@@ -53,17 +54,22 @@ export function matchingProduction(from, range, security, richness, resourceList
     let inRange = systemsWithinRange(from, range, security);
     let [minRich, maxRich] = richness;
     let matches = [];
-    for (let {system: id, jumps} of inRange) {
-        let system = systems[id];
+    for (let {system: systemId, jumps} of inRange) {
+        let system = systems[systemId];
         let planets = system[c.Planets];
-        for (let planet of planets) {
+        for (let planetId = 0; planetId < planets.length; planetId++) {
+            let planet = planets[planetId];
             let resources = planet[c.Resources];
-            for (let resource of resources) {
+            for (let resourceId = 0; resourceId < resources.length; resourceId++) {
+                let resource = resources[resourceId];
                 if (!resourceList.includes(resource[c.Resource]))
                     continue;
                 let absRich = resource[c.AbsRich];
                 if (absRich >= minRich && absRich <= maxRich) {
                     matches.push({
+                        systemId,
+                        planetId,
+                        resourceId,
                         resource: resource[c.Resource],
                         planet: planet[c.Planet],
                         security: system[c.Security],
@@ -75,6 +81,85 @@ export function matchingProduction(from, range, security, richness, resourceList
         }
     }
     return matches;
+}
+
+function shortestTripGreedy(systems) {
+    //greedy travelling salesman - aka human approach
+    let route = [systems[0]];
+    let roundTrip = 0;
+    while (true) {
+        let last = route[route.length - 1];
+        let shortest = 99999999;
+        let shortestId = null;
+        for (let next in systems) {
+            if (route.includes(next)) continue;
+            let distance = calculatePaths(last, null, next);
+            if (distance < shortest) {
+                shortest = distance;
+                shortestId = next;
+            }
+        }
+        if (shortestId === null) break;
+        route.push(shortestId);
+        roundTrip += shortest;
+    }
+    roundTrip += calculatePaths(route[route.length - 1], null, systems[0]);
+}
+
+function shortestTrip(systems) {
+    let route = systems.slice(0);
+    let shortest = shortestTripGreedy(route);
+    for (let i = 0; i < systems.length - 1; i++) {
+        route.push(route.shift());
+        let trip = shortestTripGreedy(route);
+        if (trip < shortest) shortest = trip;
+    }
+    return shortest;
+}
+
+export function findBestMatches(matches, from, resourceList, numPlanets) {
+    let resourceIndex = {};
+    let matchesByResource = {};
+    for (let i = 0; i < resourceList.length; i++) {
+        resourceIndex[resourceList[i]] = i;
+        matchesByResource[resourceList[i]] = [];
+    }
+    for (let match of matches)
+        matchesByResource[match.resource].push(match);
+    let resourceOrder = resourceList.sort(
+        (a, b) => matchesByResource[a].length - matchesByResource[b].length
+    );
+
+    let bestMatches = [];
+    function recurse(choices) {
+        //bound
+        let nPlanets = new Set(choices.map(c => c.planet)).size;
+        if (nPlanets > numPlanets) continue;
+
+        //leaf
+        if (choices.length === resourceList.length) {
+            let totalRichness = choices.reduce((a, c) => a + c.richness, 0);
+            let roundTrip = shortestTrip([from, ...choices.map(c => c.systemId)]);
+            let nSystems = new Set(choices.map(c => c.systemId)).size;
+            bestMatches.push({
+                totalRichness,
+                roundTrip,
+                planets: nPlanets,
+                systems: nSystems,
+                matches: choices
+            });
+        }
+
+        //branch
+        let resource = resourceOrder[choices.length];
+        for (let match of matchesByResource[resource]) {
+            let newChoices = choices.sice(0); //shallow copy
+            newChoices.push(match);
+            recurse(newChoices);
+        }
+    }
+    recurse([], new Set());
+    return bestMatches;
 }
 
 export function getSystems() {
