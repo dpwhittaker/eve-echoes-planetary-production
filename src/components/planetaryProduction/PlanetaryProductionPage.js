@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   Grid,
   Typography,
+  LinearProgress,
 } from '@material-ui/core';
 
 import * as query from '../../data/query';
@@ -14,13 +15,18 @@ import {
 import { VirtualizedTable } from '../common/table';
 import { Tabs } from '../common/tabs';
 import renderSystemColumns from './renderSystemColumns';
+import renderOverviewColumns from './renderOverviewColumns';
 
 function PlanetaryProductionPage() {
+  console.log("render Planetary Production Page");
   const [baseSystem, setBaseSystem] = usePersistedState('baseSystem', 0);
   const [distanceRange, setDistanceRange] = usePersistedState('distanceRange', [0, 10]);
   const [securityRange, setSecurityRange] = usePersistedState('securityRange', [0.5, 1.0]);
   const [richnessRange, setRichnessRange] = usePersistedState('richnessRange', [90, 200]);
   const [resources, setResources] = usePersistedState('resources', ['Lustering Alloy']);
+  const [planetology, setPlanetology] = usePersistedState('planetology', 1);
+  const [bestMatches, setBestMatches] = useState([]);
+  const [working, setWorking] = useState(false);
   console.log(baseSystem, distanceRange, securityRange, richnessRange, resources);
   
   const distanceMax = useMemo(() => query.longestPath(baseSystem), [baseSystem]);
@@ -30,6 +36,13 @@ function PlanetaryProductionPage() {
   const matches = useMemo(() => {
     return query.matchingProduction(baseSystem, distanceRange, securityRange, richnessRange, resources);
   }, [baseSystem, distanceRange, securityRange, resources, richnessRange]);
+
+  useEffect(() => {
+    setWorking(true);
+    query.findBestMatches(matches, baseSystem, resources, planetology, setBestMatches)
+      .then(() => setWorking(false))
+      .catch(() => console.log('interrupted'));
+  }, [matches, baseSystem, resources, planetology]);
 
   const distanceMarks = useMemo(() => {
     const marks = [...Array(Math.round(distanceMax / 10)).keys()].map((value) => ({ value: value * 10, label: value * 10 }));
@@ -42,12 +55,19 @@ function PlanetaryProductionPage() {
   const tableConfigs = useMemo(() => [
     {
       Component: VirtualizedTable,
+      data: bestMatches,
+      label: 'Overview',
+      renderColumns: renderOverviewColumns,
+    },
+    {
+      Component: VirtualizedTable,
       data: matches,
       label: 'Systems',
       renderColumns: renderSystemColumns,
     },
-  ], [matches]);
+  ], [bestMatches, matches]);
 
+  console.log("working", working);
   return (
     <Grid container spacing={4}>
 
@@ -101,6 +121,20 @@ function PlanetaryProductionPage() {
         step={1}
         value={richnessRange}
       />
+
+      <Slider
+        label="Planets (Planetology max development)"
+        marks={[{ value:1, label: '1' }, { value: 6, label: '6' }]}
+        max={6}
+        min={1}
+        onChange={(event, value) => setPlanetology(value)}
+        step={1}
+        value={planetology}
+      />
+
+      <Grid item xs={12}>
+        <LinearProgress value={100} variant={working ? 'indeterminate' : 'determinate'}/>
+      </Grid>
 
       <Tabs tabs={tableConfigs}>
         {tableConfigs.map((tab) => (

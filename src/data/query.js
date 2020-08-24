@@ -1,6 +1,8 @@
 import data from './data.json';
 import c from './columns.js';
 
+const sleep = m => new Promise(r => setTimeout(r, m));
+
 let systems = data.data;
 
 function calculatePaths(from, maxJumps, to) {
@@ -9,7 +11,6 @@ function calculatePaths(from, maxJumps, to) {
     let max = 0;
     let jumps = {[from]: 0};
     queue.push(from);
-    console.log("Neighbors", c);
     while (queue.length > 0) {
         let node = queue.shift();
         if (maxJumps && jumps[node] === maxJumps) continue;
@@ -28,6 +29,24 @@ function calculatePaths(from, maxJumps, to) {
     console.log(max);
     console.log(`calculatePaths time: ${end - start} ms`);
     return [jumps, max];
+}
+
+function initShortestPaths() {
+    for (let i = 0; i < systems.length; i++) {
+        let system = systems[i];
+        system.shortestPaths = systems.map(s => -1);
+        system.shortestPaths[i] = 0;
+    }
+}
+initShortestPaths();
+
+export function shortestPath(from, to) {
+    let distance = systems[from].shortestPaths[to];
+    if (distance !== -1) return distance;
+    distance = calculatePaths(from, null, to);
+    systems[from].shortestPaths[to] = distance;
+    systems[to].shortestPaths[from] = distance;
+    return distance;
 }
 
 export function longestPath(from) {
@@ -86,24 +105,28 @@ export function matchingProduction(from, range, security, richness, resourceList
 function shortestTripGreedy(systems) {
     //greedy travelling salesman - aka human approach
     let route = [systems[0]];
+    let todo = systems.slice(1);
+    let todolen = todo.length;
     let roundTrip = 0;
     while (true) {
         let last = route[route.length - 1];
         let shortest = 99999999;
-        let shortestId = null;
-        for (let next in systems) {
-            if (route.includes(next)) continue;
-            let distance = calculatePaths(last, null, next);
+        let shortestIndex = -1;
+        for (let i = 0; i < todolen; i++) {
+            let next = todo[i];
+            let distance = shortestPath(last, next);
             if (distance < shortest) {
                 shortest = distance;
-                shortestId = next;
+                shortestIndex = i;
             }
         }
-        if (shortestId === null) break;
-        route.push(shortestId);
+        if (shortestIndex === -1) break;
+        route.push(todo[shortestIndex]);
+        todo[shortestIndex] = todo[--todolen];
         roundTrip += shortest;
     }
-    roundTrip += calculatePaths(route[route.length - 1], null, systems[0]);
+    roundTrip += shortestPath(route[route.length - 1], systems[0]);
+    return roundTrip;
 }
 
 function shortestTrip(systems) {
@@ -117,7 +140,11 @@ function shortestTrip(systems) {
     return shortest;
 }
 
-export function findBestMatches(matches, from, resourceList, numPlanets) {
+let callNumber = 0;
+export async function findBestMatches(matches, from, resourceList, numPlanets, setBestMatches) {
+    let thisCallNumber = ++callNumber;
+    let start = performance.now();
+    let loopsBetweenSleep = 0;
     let resourceIndex = {};
     let matchesByResource = {};
     for (let i = 0; i < resourceList.length; i++) {
@@ -126,39 +153,124 @@ export function findBestMatches(matches, from, resourceList, numPlanets) {
     }
     for (let match of matches)
         matchesByResource[match.resource].push(match);
-    let resourceOrder = resourceList.sort(
+    for (let resource in matchesByResource) {
+        if (matchesByResource[resource].length === 0) return [];
+        matchesByResource[resource].sort(
+            (a, b) => b.richness - a.richness
+        );
+    }
+    let resourceOrder = resourceList.slice(0).sort(
         (a, b) => matchesByResource[a].length - matchesByResource[b].length
     );
+    let resourceMaxRich = resourceOrder.map(r => matchesByResource[r][0].richness);
+    let maxRemainingRich = resourceMaxRich.map((r, i) => resourceMaxRich.slice(i).reduce((a, v) => a + v));
+    maxRemainingRich.push(0);
 
-    let bestMatches = [];
-    function recurse(choices) {
+    let seen = {};
+    let planets = [];
+    for (let match of matches) {
+        if (match.planet in seen) {
+            match.planetUid = seen[match.planet];
+        } else {
+            match.planetUid = planets.length;
+            planets.push(false);
+            seen[match.planet] = match.planetUid;
+        }
+    }
+    let bestMatches = [{
+        totalRichness: null,
+        roundTrip: null,
+        planets: new Set(matches.map(m => m.planet)).size,
+        systems: new Set(matches.map(m => m.systemId)).size,
+        matches
+    }];
+    setBestMatches(bestMatches)
+    await sleep(1);
+    let setup = performance.now();
+    let choices = [];
+    let progress = [];
+    let progressDenominator = resourceOrder.map(r => matchesByResource[r].length);
+    let nPlanets = 0;
+    let boundPlanets = 0;
+    let boundRichness = 0;
+    async function recurse() {
+        if (thisCallNumber !== callNumber) throw new Error('Interrupted');
+        loopsBetweenSleep++;
+        if (loopsBetweenSleep > 10000) {
+            loopsBetweenSleep = 0;
+            await sleep(1);
+        }
         //bound
-        let nPlanets = new Set(choices.map(c => c.planet)).size;
-        if (nPlanets > numPlanets) continue;
+        if (nPlanets > numPlanets) {
+            boundPlanets++;
+            return;
+        }
+        let totalRichness = choices.reduce((a, c) => a + c.richness, 0) + maxRemainingRich[choices.length];
+        if (bestMatches.length >= 100 && totalRichness < bestMatches[99].totalRichness) {
+            boundRichness++;
+            return;
+        }
+
+        if (choices.length < 3) {
+            console.log(
+                callNumber,
+                progress.map((p, i) => p / progressDenominator[i]).join(' '),
+                "bound by planets", boundPlanets,
+                "bound by richness", boundRichness
+                );
+        }
 
         //leaf
         if (choices.length === resourceList.length) {
-            let totalRichness = choices.reduce((a, c) => a + c.richness, 0);
+            //console.log(choices.map(c => c.planet));
             let roundTrip = shortestTrip([from, ...choices.map(c => c.systemId)]);
             let nSystems = new Set(choices.map(c => c.systemId)).size;
+            let matches = choices.slice(0);
+            //console.log("found bestMatch", totalRichness, roundTrip, matches);
             bestMatches.push({
                 totalRichness,
                 roundTrip,
                 planets: nPlanets,
                 systems: nSystems,
-                matches: choices
+                matches
             });
+            bestMatches.sort((a, b) => b.totalRichness - a.totalRichness);
+            while (bestMatches.length >= 100 && bestMatches[bestMatches.length - 1].totalRichness < bestMatches[99].totalRichness)
+                bestMatches.pop();
+            setBestMatches(bestMatches.slice(0));
+            console.log(bestMatches.length);
+            await sleep(1);
+            return;
         }
 
         //branch
-        let resource = resourceOrder[choices.length];
-        for (let match of matchesByResource[resource]) {
-            let newChoices = choices.sice(0); //shallow copy
-            newChoices.push(match);
-            recurse(newChoices);
+        let last = choices.length;
+        let resource = resourceOrder[last];
+        let mbr = matchesByResource[resource];
+        choices.push(null);
+        progress.push(0);
+        for (let i = 0, len = mbr.length; i < len; i++) {
+            let match = mbr[i];
+            choices[last] = match;
+            progress[last] = i;
+            let added = false;
+            if (!planets[match.planetUid]) {
+                planets[match.planetUid] = true;
+                added = true;
+                nPlanets += 1;
+            }
+            await recurse();
+            if (added) {
+                planets[match.planetUid] = false;
+                nPlanets -= 1;
+            }
         }
+        choices.pop();
+        progress.pop();
     }
-    recurse([], new Set());
+    await recurse();
+    let end = performance.now();
+    console.log(`Setup time: ${setup - start}ms, Recurse time: ${end - setup}ms`);
     return bestMatches;
 }
 
