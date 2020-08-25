@@ -33,7 +33,7 @@ const useStyles = makeStyles((theme) => createStyles({
   },
   tableRowHover: {
     '&:hover': {
-      backgroundColor: theme.palette.grey[200],
+      backgroundColor: theme.palette.grey[800],
     },
   },
   tableCell: {
@@ -115,6 +115,8 @@ function VirtualizedTable({
               rowGetter={({index}) => data[index]}
               rowHeight={rowHeight}
               width={screenWidth}
+              style={{height: screenWidth > screenHeight ? screenHeight : screenHeight}}
+              onRowClick={onRowClick}
             >
               {columns.map(({ dataKey, width: columnWidth, ...rest }, index) => {
                 return (

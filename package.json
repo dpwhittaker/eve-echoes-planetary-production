@@ -10,10 +10,12 @@
     "@testing-library/react": "^9.5.0",
     "@testing-library/user-event": "^7.2.1",
     "classnames": "^2.2.6",
+    "comlink": "^4.3.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-scripts": "3.4.3",
-    "react-virtualized": "^9.22.2"
+    "react-virtualized": "^9.22.2",
+    "worker-loader": "^3.0.2"
   },
   "scripts": {
     "start": "react-scripts start",

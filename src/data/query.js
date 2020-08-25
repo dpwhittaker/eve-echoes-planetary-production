@@ -1,7 +1,10 @@
+import * as Comlink from 'comlink';
 import data from './data.json';
 import c from './columns.js';
 
-const sleep = m => new Promise(r => setTimeout(r, m));
+const sleep = () => new Promise(r => setTimeout(r, 10));
+const SLEEPLOOPS = 100000;
+const SENDMATCHDELAY = 100;
 
 let systems = data.data;
 
@@ -141,10 +144,11 @@ function shortestTrip(systems) {
 }
 
 let callNumber = 0;
-export async function findBestMatches(matches, from, resourceList, numPlanets, setBestMatches) {
+export async function findBestMatches(matches, from, resourceList, numPlanets, setBestMatches, setWorking) {
     let thisCallNumber = ++callNumber;
     let start = performance.now();
     let loopsBetweenSleep = 0;
+    let lastMatchSend = 0;
     let resourceIndex = {};
     let matchesByResource = {};
     for (let i = 0; i < resourceList.length; i++) {
@@ -178,14 +182,15 @@ export async function findBestMatches(matches, from, resourceList, numPlanets, s
         }
     }
     let bestMatches = [{
-        totalRichness: null,
-        roundTrip: null,
+        totalRichness: 'ALL',
+        roundTrip: '',
         planets: new Set(matches.map(m => m.planet)).size,
         systems: new Set(matches.map(m => m.systemId)).size,
         matches
     }];
-    setBestMatches(bestMatches)
-    await sleep(1);
+    setBestMatches(bestMatches);
+    setWorking(true);
+    await sleep();
     let setup = performance.now();
     let choices = [];
     let progress = [];
@@ -194,11 +199,11 @@ export async function findBestMatches(matches, from, resourceList, numPlanets, s
     let boundPlanets = 0;
     let boundRichness = 0;
     async function recurse() {
-        if (thisCallNumber !== callNumber) throw new Error('Interrupted');
+        if (thisCallNumber !== callNumber) return;
         loopsBetweenSleep++;
-        if (loopsBetweenSleep > 10000) {
+        if (loopsBetweenSleep > SLEEPLOOPS) {
             loopsBetweenSleep = 0;
-            await sleep(1);
+            await sleep();
         }
         //bound
         if (nPlanets > numPlanets) {
@@ -211,7 +216,7 @@ export async function findBestMatches(matches, from, resourceList, numPlanets, s
             return;
         }
 
-        if (choices.length < 3) {
+        if (choices.length < 2) {
             console.log(
                 callNumber,
                 progress.map((p, i) => p / progressDenominator[i]).join(' '),
@@ -234,12 +239,18 @@ export async function findBestMatches(matches, from, resourceList, numPlanets, s
                 systems: nSystems,
                 matches
             });
-            bestMatches.sort((a, b) => b.totalRichness - a.totalRichness);
+            //bubble sort it up, leave ALL in [0]
+            for (let i = bestMatches.length - 1; i > 1; i--) {
+                if (bestMatches[i].totalRichness <= bestMatches[i-1].totalRichness) break;
+                [bestMatches[i], bestMatches[i-1]] = [bestMatches[i-1], bestMatches[i]];
+            }
             while (bestMatches.length >= 100 && bestMatches[bestMatches.length - 1].totalRichness < bestMatches[99].totalRichness)
                 bestMatches.pop();
-            setBestMatches(bestMatches.slice(0));
-            console.log(bestMatches.length);
-            await sleep(1);
+            if (performance.now() > lastMatchSend + SENDMATCHDELAY) {
+                setBestMatches(bestMatches.slice(0));
+                lastMatchSend = performance.now();
+            }
+            await sleep();
             return;
         }
 
@@ -269,6 +280,9 @@ export async function findBestMatches(matches, from, resourceList, numPlanets, s
         progress.pop();
     }
     await recurse();
+    if (thisCallNumber !== callNumber) return;
+    setBestMatches(bestMatches);
+    setWorking(false);
     let end = performance.now();
     console.log(`Setup time: ${setup - start}ms, Recurse time: ${end - setup}ms`);
     return bestMatches;
@@ -296,3 +310,14 @@ export function getResourceMaxOutput() {
         maxOutput[data.resources[i]] = data.maxOutput[i];
     return maxOutput;
 }
+
+Comlink.expose({
+    shortestPath,
+    longestPath,
+    systemsWithinRange,
+    matchingProduction,
+    findBestMatches,
+    getSystems,
+    getResources,
+    getResourceMaxOutput
+})

@@ -5,7 +5,9 @@ import {
   LinearProgress,
 } from '@material-ui/core';
 
-import * as query from '../../data/query';
+import * as Comlink from 'comlink';
+/* eslint-disable import/no-webpack-loader-syntax */
+import Query from 'worker-loader!../../data/query';
 import usePersistedState from '../../helpers/usePersistedStorage';
 import {
   Autocomplete,
@@ -16,6 +18,7 @@ import { VirtualizedTable } from '../common/table';
 import { Tabs } from '../common/tabs';
 import renderSystemColumns from './renderSystemColumns';
 import renderOverviewColumns from './renderOverviewColumns';
+const query = Comlink.wrap(new Query());
 
 function PlanetaryProductionPage() {
   console.log("render Planetary Production Page");
@@ -27,21 +30,24 @@ function PlanetaryProductionPage() {
   const [planetology, setPlanetology] = usePersistedState('planetology', 1);
   const [bestMatches, setBestMatches] = useState([]);
   const [working, setWorking] = useState(false);
+  const [distanceMax, setDistanceMax] = useState(65);
+  const [resourceNames, setResourceNames] = useState(['Lustering Alloy']);
+  const [systems, setSystems] = useState([]);
+  const [matches, setMatches] = useState([]);
+  const [details, setDetails] = useState([]);
   console.log(baseSystem, distanceRange, securityRange, richnessRange, resources);
   
-  const distanceMax = useMemo(() => query.longestPath(baseSystem), [baseSystem]);
-  const resourceNames = useMemo(() => query.getResources(), []);
-  const systems = useMemo(() => query.getSystems(), []);
+  useEffect(() => query.longestPath(baseSystem).then(m => setDistanceMax(m)), [baseSystem]);
+  useEffect(() => query.getResources().then(r =>setResourceNames(r)), []);
+  useEffect(() => query.getSystems().then(s => setSystems(s)), []);
 
-  const matches = useMemo(() => {
-    return query.matchingProduction(baseSystem, distanceRange, securityRange, richnessRange, resources);
+  useEffect(() => {
+    query.matchingProduction(baseSystem, distanceRange, securityRange, richnessRange, resources)
+      .then(m => {setMatches(m); setDetails(m);});
   }, [baseSystem, distanceRange, securityRange, resources, richnessRange]);
 
   useEffect(() => {
-    setWorking(true);
-    query.findBestMatches(matches, baseSystem, resources, planetology, setBestMatches)
-      .then(() => setWorking(false))
-      .catch(() => console.log('interrupted'));
+    query.findBestMatches(matches, baseSystem, resources, planetology, Comlink.proxy(setBestMatches), Comlink.proxy(setWorking))
   }, [matches, baseSystem, resources, planetology]);
 
   const distanceMarks = useMemo(() => {
@@ -68,6 +74,8 @@ function PlanetaryProductionPage() {
   ], [bestMatches, matches]);
 
   console.log("working", working);
+  if (systems.length === 0)
+    return (<Typography>Loading...</Typography>);
   return (
     <Grid container spacing={4}>
 
@@ -136,6 +144,7 @@ function PlanetaryProductionPage() {
         <LinearProgress value={100} variant={working ? 'indeterminate' : 'determinate'}/>
       </Grid>
 
+      {/*
       <Tabs tabs={tableConfigs}>
         {tableConfigs.map((tab) => (
           <tab.Component
@@ -144,6 +153,13 @@ function PlanetaryProductionPage() {
           />
         ))}
       </Tabs>      
+      */}
+      <Grid item xs={12} lg={6}>
+        <VirtualizedTable data={bestMatches} columns={renderOverviewColumns()} onRowClick={({rowData}) => setDetails(rowData.matches)}/>
+      </Grid>
+      <Grid item xs={12} lg={6}>
+        <VirtualizedTable data={details} columns={renderSystemColumns()}/>
+      </Grid>
 
     </Grid>
   );
