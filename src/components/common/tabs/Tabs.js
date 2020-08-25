@@ -6,49 +6,65 @@ import {
   Tab as MUITab,
   Tabs as MUITabs,
 } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
+import { withStyles } from '@material-ui/core/styles';
 
-import usePersistedState from '../../../helpers/usePersistedStorage';
-
-const useStyles = makeStyles({
+const styles = {
   root: {
     maxHeight: '100vh',
   },
   paper: {
     flexGrow: 1,
   },
-});
+};
 
-function Tabs({ children, tabs }) {
-  const [currentTab, setCurrentTab] = usePersistedState('currentTab', 0);
-  const classes = useStyles();
+// function Tabs({ children, tabs }) {
+class Tabs extends React.Component {
+  constructor(props) {
+    super(props);
 
-  return (
-    <Grid
-      className={classes.root}
-      item
-      lg={12}
-      md={12}
-      xs={12}
-    >
-      <Paper className={classes.paper}>
-        <MUITabs
-          centered
-          onChange={(event, index) => setCurrentTab(index)}
-          value={currentTab}
-          variant="fullWidth"
-        >
-          {tabs.map((tab, index) => (
-            <MUITab
-              key={index}
-              label={tab.label}
-            />
-          ))}
-        </MUITabs>
-      </Paper>
-      {children[currentTab]}
-    </Grid>
-  );
+    this.state = {
+      currentTab: 0,
+    };
+
+    this.setCurrentTab = this.setCurrentTab.bind(this);
+  }
+
+  setCurrentTab(currentTab) {
+    this.setState({ currentTab });
+  }
+
+  render() {
+    const { children, classes, subNav, tabs } = this.props;
+    const { currentTab } = this.state;
+
+    return (
+      <Grid
+        className={classes.root}
+        item
+        lg={12}
+        md={12}
+        xs={12}
+      >
+        <Paper className={classes.paper}>
+          <MUITabs
+            centered
+            onChange={(event, index) => this.setCurrentTab(index)}
+            value={currentTab}
+            variant="fullWidth"
+          >
+            {tabs.map((tab, index) => (
+              <MUITab
+                key={index}
+                label={tab.label}
+              />
+            ))}
+          </MUITabs>
+        </Paper>
+        {subNav}
+        {children[currentTab]}
+      </Grid>
+    );
+  }
 }
 
 Tabs.defaultProps = {
@@ -58,7 +74,8 @@ Tabs.defaultProps = {
 
 Tabs.propTypes = {
   children: PropTypes.array.isRequired,
+  subNav: PropTypes.node,
   tabs: PropTypes.array.isRequired,
 };
 
-export default Tabs;
+export default withStyles(styles)(Tabs);

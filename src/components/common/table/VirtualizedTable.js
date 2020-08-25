@@ -1,13 +1,18 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
   AutoSizer,
   Column,
   Table,
 } from 'react-virtualized';
-import { TableCell } from '@material-ui/core';
+import {
+  TableCell,
+  Typography
+} from '@material-ui/core';
 import { createStyles, makeStyles } from '@material-ui/styles';
 import classNames from 'classnames';
+
+import { TableHeader } from './';
 
 const useStyles = makeStyles((theme) => createStyles({
   flexContainer: {
@@ -39,6 +44,10 @@ const useStyles = makeStyles((theme) => createStyles({
   tableCell: {
     flex: 1,
   },
+  title: {
+    marginLeft: theme.spacing(1),
+    width: 'max-content',
+  },
   noClick: {
     cursor: 'initial',
   },
@@ -50,8 +59,26 @@ function VirtualizedTable({
   headerHeight,
   onRowClick,
   rowHeight,
+  title,
 }) {
   const classes = useStyles();
+
+  const [direction, setDirection] = useState(
+    columns && columns[0].sortDirection ? columns[0].sortDirection : 'asc'
+  );
+  const [orderBy, setOrderBy] = useState(columns.length ? columns[0].dataKey : undefined);
+
+  const sortedData = useMemo(() => {
+    return [...data].sort((a, b) => {
+      const modifier = direction === 'asc' ? 1 : -1;
+
+      if (a[orderBy] === b[orderBy]) {
+        return 0;
+      } else {
+        return a[orderBy] > b[orderBy] ? 1 * modifier : -1 * modifier;
+      }
+    });
+  }, [data, direction, orderBy]);
 
   const cellClasses = classNames(
     classes.tableCell,
@@ -85,53 +112,75 @@ function VirtualizedTable({
     )
   }, [cellClasses, columns, rowHeight]);
 
-  const renderHeader = useCallback(({ columnIndex, label, ...rest }) => {
+  const renderHeader = useCallback(({ column, ...rest }) => {
     return (
-      <TableCell
-        align={columns[columnIndex].numeric || false ? 'right' : 'left'}
+      <TableHeader
         className={classNames(classes.tableCell, classes.flexContainer, classes.noClick)}
+        column={column}
         component="div"
         style={{ height: headerHeight }}
         variant="head"
+        {...rest}
       >
-        {label}
-      </TableCell>
+        {column.label}
+      </TableHeader>
     );
-  }, [classes, columns, headerHeight])
+  }, [classes, headerHeight]);
+
+  function handleChangeSort(orderBy, direction) {
+    setOrderBy(orderBy);
+    setDirection(direction);
+  }
 
   return (
     <div className={classes.root}>
       <AutoSizer>
         {({ height: screenHeight, width: screenWidth }) => {
           return (
-            <Table
-              className={classes.table}
-              gridStyle={{ direction: 'inherit' }}
-              headerHeight={headerHeight}
-              height={screenHeight}
-              noRowsRenderer={() => <div>No results.</div>}
-              rowClassName={getRowClassName}
-              rowCount={data.length}
-              rowGetter={({index}) => data[index]}
-              rowHeight={rowHeight}
-              width={screenWidth}
-              style={{height: screenWidth > screenHeight ? screenHeight : screenHeight}}
-              onRowClick={onRowClick}
-            >
-              {columns.map(({ dataKey, width: columnWidth, ...rest }, index) => {
-                return (
-                  <Column
-                    cellRenderer={renderCell}
-                    className={classes.flexContainer}
-                    dataKey={dataKey}
-                    headerRenderer={(headerProps) => renderHeader({ ...headerProps, columnIndex: index })}
-                    key={dataKey}
-                    width={Number.isInteger(columnWidth) ? columnWidth : columnWidth * screenWidth}
-                    {...rest}
-                  />
-                )
-              })}
-            </Table>
+            <>
+              <Typography
+                className={classes.title}
+                gutterBottom
+                variant="h5"
+              >
+                {title}
+              </Typography>
+              <Table
+                className={classes.table}
+                gridStyle={{ direction: 'inherit' }}
+                headerHeight={headerHeight}
+                height={screenHeight}
+                noRowsRenderer={() => <div>No results.</div>}
+                rowClassName={getRowClassName}
+                rowCount={sortedData.length}
+                rowGetter={({index}) => sortedData[index]}
+                rowHeight={rowHeight}
+                width={screenWidth}
+                sortBy={orderBy}
+                style={{height: screenWidth > screenHeight ? screenHeight : screenHeight}}
+                onRowClick={onRowClick}
+              >
+                {columns.map((column, index) => {
+                  const rendererProps = {
+                    column,
+                    direction,
+                    onChangeSort: handleChangeSort,
+                    orderBy,
+                  };
+
+                  return (
+                    <Column
+                      cellRenderer={renderCell}
+                      className={classes.flexContainer}
+                      dataKey={column.dataKey}
+                      headerRenderer={(headerProps) => renderHeader({ ...rendererProps, ...headerProps })}
+                      key={index}
+                      width={Number.isInteger(column.width) ? column.width : column.width * screenWidth}
+                    />
+                  )
+                })}
+              </Table>
+            </>
           );
         }}
       </AutoSizer>

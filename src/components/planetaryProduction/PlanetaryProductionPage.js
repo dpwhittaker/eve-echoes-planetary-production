@@ -1,9 +1,17 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
+  LinearProgress,
+  Modal,
   Grid,
   Typography,
-  LinearProgress,
+  useMediaQuery,
 } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
 
 import * as Comlink from 'comlink';
 /* eslint-disable import/no-webpack-loader-syntax */
@@ -18,10 +26,24 @@ import { VirtualizedTable } from '../common/table';
 import { Tabs } from '../common/tabs';
 import renderSystemColumns from './renderSystemColumns';
 import renderOverviewColumns from './renderOverviewColumns';
+
 const query = Comlink.wrap(new Query());
 
+const useStyles = makeStyles({
+  pageLoading: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+  },
+  test: {
+    height: 10,
+    width: 120,
+  }
+});
+
 function PlanetaryProductionPage() {
-  console.log("render Planetary Production Page");
+  // console.log("render Planetary Production Page");
   const [baseSystem, setBaseSystem] = usePersistedState('baseSystem', 0);
   const [distanceRange, setDistanceRange] = usePersistedState('distanceRange', [0, 10]);
   const [securityRange, setSecurityRange] = usePersistedState('securityRange', [0.5, 1.0]);
@@ -35,7 +57,11 @@ function PlanetaryProductionPage() {
   const [systems, setSystems] = useState([]);
   const [matches, setMatches] = useState([]);
   const [details, setDetails] = useState([]);
-  console.log(baseSystem, distanceRange, securityRange, richnessRange, resources);
+  // console.log(baseSystem, distanceRange, securityRange, richnessRange, resources);
+
+  const isSmallScreen = useMediaQuery((theme) => theme.breakpoints.down('sm'));
+  const classes = useStyles();
+  const tabRef = useRef(null);
   
   useEffect(() => { query.longestPath(baseSystem).then(m => setDistanceMax(m)) }, [baseSystem]);
   useEffect(() => { query.getResources().then(r => setResourceNames(r)) }, []);
@@ -61,21 +87,45 @@ function PlanetaryProductionPage() {
   const tableConfigs = useMemo(() => [
     {
       Component: VirtualizedTable,
+      columns: renderOverviewColumns(),
       data: bestMatches,
-      label: 'Overview',
-      renderColumns: renderOverviewColumns,
+      label: 'Best Matches',
+      onRowClick: ({rowData}) => {
+        setDetails(rowData.matches);
+        if (tabRef && tabRef.current) {
+          tabRef.current.setCurrentTab(1);
+        }
+      },
+      title: isSmallScreen ?  undefined : 'Best Matches',
     },
     {
       Component: VirtualizedTable,
-      data: matches,
-      label: 'Systems',
-      renderColumns: renderSystemColumns,
+      columns: renderSystemColumns(),
+      data: details,
+      label: 'Details',
+      title: isSmallScreen ? undefined : 'Details',
     },
-  ], [bestMatches, matches]);
+  ], [bestMatches, details, isSmallScreen]);
 
-  console.log("working", working);
-  if (systems.length === 0)
-    return (<Typography>Loading...</Typography>);
+  const queryLoader = (
+    <Grid item xs={12}>
+      <LinearProgress value={100} variant={working ? 'indeterminate' : 'determinate'}/>
+    </Grid>
+  );
+
+  if (systems.length === 0) {
+    return (
+      <Modal className={classes.pageLoading} open>
+        <>
+          <Typography variant="h5" gutterBottom>Loading...</Typography>
+          <div className={classes.test} >
+            <LinearProgress />
+          </div>
+        </>
+      </Modal>
+    );
+  }
+
   return (
     <Grid container spacing={4}>
 
@@ -85,6 +135,7 @@ function PlanetaryProductionPage() {
       </Grid>
 
       <Autocomplete
+        disableClearable
         getOptionLabel={(option) => systems[option].label}
         label="Base System"
         onChange={(event, value) => setBaseSystem(value)}
@@ -140,26 +191,25 @@ function PlanetaryProductionPage() {
         value={planetology}
       />
 
-      <Grid item xs={12}>
-        <LinearProgress value={100} variant={working ? 'indeterminate' : 'determinate'}/>
-      </Grid>
-
-      {/*
-      <Tabs tabs={tableConfigs}>
-        {tableConfigs.map((tab) => (
-          <tab.Component
-            columns={tab.renderColumns()}
-            data={tab.data}
-          />
-        ))}
-      </Tabs>      
-      */}
-      <Grid item xs={12} lg={6}>
-        <VirtualizedTable data={bestMatches} columns={renderOverviewColumns()} onRowClick={({rowData}) => setDetails(rowData.matches)}/>
-      </Grid>
-      <Grid item xs={12} lg={6}>
-        <VirtualizedTable data={details} columns={renderSystemColumns()}/>
-      </Grid>
+      {isSmallScreen
+        ? (
+          <Tabs ref={tabRef} tabs={tableConfigs} subNav={queryLoader}>
+            {tableConfigs.map(({ Component, ...tab }, index) => (
+              <Component key={index} {...tab} />
+            ))}
+          </Tabs>
+        )
+        : (
+          <>
+            {queryLoader}
+            {tableConfigs.map(({ Component, ...tab }, index) => (
+              <Grid key={index} item md={6}>
+                <Component {...tab} />
+              </Grid>
+            ))}
+          </>
+        )
+      }
 
     </Grid>
   );
