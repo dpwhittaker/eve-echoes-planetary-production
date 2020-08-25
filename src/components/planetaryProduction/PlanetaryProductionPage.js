@@ -37,9 +37,9 @@ function PlanetaryProductionPage() {
   const [details, setDetails] = useState([]);
   console.log(baseSystem, distanceRange, securityRange, richnessRange, resources);
   
-  useEffect(() => query.longestPath(baseSystem).then(m => setDistanceMax(m)), [baseSystem]);
-  useEffect(() => query.getResources().then(r =>setResourceNames(r)), []);
-  useEffect(() => query.getSystems().then(s => setSystems(s)), []);
+  useEffect(() => { query.longestPath(baseSystem).then(m => setDistanceMax(m)) }, [baseSystem]);
+  useEffect(() => { query.getResources().then(r => setResourceNames(r)) }, []);
+  useEffect(() => { query.getSystems().then(s => setSystems(s)) }, []);
 
   useEffect(() => {
     query.matchingProduction(baseSystem, distanceRange, securityRange, richnessRange, resources)
