@@ -8,66 +8,57 @@ const SENDMATCHDELAY = 100;
 
 let systems = data.data;
 
-function calculatePaths(from, maxJumps, to) {
-    let start = performance.now();
+function calculatePaths(from) {
+    let jumps = systems[from].shortestPaths;
     let queue = [];
-    let max = 0;
-    let jumps = {[from]: 0};
     queue.push(from);
     while (queue.length > 0) {
         let node = queue.shift();
-        if (maxJumps && jumps[node] === maxJumps) continue;
         let system = systems[node];
-        //console.log(node, system);
         for (let next of system[c.Neighbors]) {
-            if (!(next in jumps)) {
-                max = jumps[next] = jumps[node] + 1;
-                if (to !== undefined && next === to) return max;
+            if (jumps[next] === -1) {
+                jumps[next] = jumps[node] + 1;
                 queue.push(next);
             }
         }
     }
-    let end = performance.now();
-    console.log(jumps);
-    console.log(max);
-    console.log(`calculatePaths time: ${end - start} ms`);
-    return [jumps, max];
+    return jumps;
 }
 
-function initShortestPaths() {
+function initSystems() {
+    let start = performance.now();
     for (let i = 0; i < systems.length; i++) {
         let system = systems[i];
         system.shortestPaths = systems.map(s => -1);
         system.shortestPaths[i] = 0;
+        calculatePaths(i);
     }
+    let end = performance.now();
+    console.log(`initSystems time: ${end - start} ms`);
 }
-initShortestPaths();
+initSystems();
 
 export function shortestPath(from, to) {
-    let distance = systems[from].shortestPaths[to];
-    if (distance !== -1) return distance;
-    distance = calculatePaths(from, null, to);
-    systems[from].shortestPaths[to] = distance;
-    systems[to].shortestPaths[from] = distance;
-    return distance;
+    return systems[from].shortestPaths[to];
 }
 
 export function longestPath(from) {
-    return calculatePaths(from)[1];
+    return systems[from].shortestPaths.reduce((a,c) => Math.max(a, c), -Infinity);
 }
 
 export function systemsWithinRange(from, range, security) {
+    let jumps = systems[from].shortestPaths;
     let [minRange, maxRange] = range;
     let [minSecurity, maxSecurity] = security;
     if (!minRange) minRange = 0;
-    let [jumps] = calculatePaths(from, maxRange);
     let sys = [];
-    for (let system in jumps) {
-        if (jumps[system] >= minRange &&
-            systems[system][c.Security] >= minSecurity &&
+    for (let system = 0; system < jumps.length; system++) {
+        if (minRange <= jumps[system] &&
+            jumps[system] <= maxRange &&
+            minSecurity <= systems[system][c.Security] &&
             systems[system][c.Security] <= maxSecurity
-            )
-            sys.push({system: parseInt(system), jumps: jumps[system]});
+           )
+            sys.push({system: system, jumps: jumps[system]});
     }
     return sys;
 }
@@ -84,31 +75,25 @@ export function matchingProduction(from, range, security, richness, resourceList
             let resources = planet[c.Resources];
             for (let resourceId = 0; resourceId < resources.length; resourceId++) {
                 let resource = resources[resourceId];
-                if (!resourceList.includes(resource[c.Resource]))
-                    continue;
-                let absRich = resource[c.AbsRich];
-                if (absRich >= minRich && absRich <= maxRich) {
-                    matches.push({
-                        systemId,
-                        planetId,
-                        resourceId,
-                        resource: resource[c.Resource],
-                        planet: planet[c.Planet],
-                        security: system[c.Security],
-                        jumps,
-                        richness: absRich
-                    });
-                }
+                if (!resourceList.includes(resource[c.Resource])) continue;
+                let richness = resource[c.AbsRich];
+                if (richness < minRich || richness > maxRich) continue;
+                matches.push({systemId, planetId, resourceId, jumps, richness,
+                    resource: resource[c.Resource], planet: planet[c.Planet],
+                    security: system[c.Security], output: resource[c.Output],
+                    planetType: planet[c.PlanetType], system: system[c.System],
+                    constellation: system[c.Constellation], region: system[c.Region]
+                });
             }
         }
     }
     return matches;
 }
 
-function shortestTripGreedy(systems) {
-    //greedy travelling salesman - aka human approach
-    let route = [systems[0]];
-    let todo = systems.slice(1);
+//greedy travelling salesman - aka human approach
+function shortestTripGreedy(systemList) {
+    let route = [systemList[0]];
+    let todo = systemList.slice(1);
     let todolen = todo.length;
     let roundTrip = 0;
     while (true) {
@@ -117,7 +102,7 @@ function shortestTripGreedy(systems) {
         let shortestIndex = -1;
         for (let i = 0; i < todolen; i++) {
             let next = todo[i];
-            let distance = shortestPath(last, next);
+            let distance = systems[last].shortestPaths[next];
             if (distance < shortest) {
                 shortest = distance;
                 shortestIndex = i;
@@ -128,7 +113,7 @@ function shortestTripGreedy(systems) {
         todo[shortestIndex] = todo[--todolen];
         roundTrip += shortest;
     }
-    roundTrip += shortestPath(route[route.length - 1], systems[0]);
+    roundTrip += shortestPath(route[route.length - 1], systemList[0]);
     return roundTrip;
 }
 
@@ -144,8 +129,9 @@ function shortestTrip(systems) {
 }
 
 let callNumber = 0;
-export async function findBestMatches(matches, from, resourceList, numPlanets, setBestMatches, setWorking) {
+export async function findBestMatches(matches, from, resourceList, numPlanets, maxRoundTripJumps, setBestMatches, setWorking) {
     let thisCallNumber = ++callNumber;
+    let id = 0;
     let start = performance.now();
     let loopsBetweenSleep = 0;
     let lastMatchSend = 0;
@@ -182,6 +168,7 @@ export async function findBestMatches(matches, from, resourceList, numPlanets, s
         }
     }
     let bestMatches = [{
+        id: id++,
         totalRichness: 'ALL',
         roundTrip: '',
         planets: new Set(matches.map(m => m.planet)).size,
@@ -198,6 +185,7 @@ export async function findBestMatches(matches, from, resourceList, numPlanets, s
     let nPlanets = 0;
     let boundPlanets = 0;
     let boundRichness = 0;
+    let boundRoundTrips = 0;
     async function recurse() {
         if (thisCallNumber !== callNumber) return;
         loopsBetweenSleep++;
@@ -215,24 +203,29 @@ export async function findBestMatches(matches, from, resourceList, numPlanets, s
             boundRichness++;
             return;
         }
-
+        let roundTrip = shortestTrip([from, ...choices.map(c => c.systemId)]);
+        if (roundTrip > maxRoundTripJumps) {
+            boundRoundTrips++;
+            return;
+        }
         if (choices.length < 2) {
             console.log(
                 callNumber,
                 progress.map((p, i) => p / progressDenominator[i]).join(' '),
                 "bound by planets", boundPlanets,
-                "bound by richness", boundRichness
+                "bound by richness", boundRichness,
+                "bound by round Trip", boundRoundTrips
                 );
         }
 
         //leaf
         if (choices.length === resourceList.length) {
             //console.log(choices.map(c => c.planet));
-            let roundTrip = shortestTrip([from, ...choices.map(c => c.systemId)]);
             let nSystems = new Set(choices.map(c => c.systemId)).size;
             let matches = choices.slice(0);
             //console.log("found bestMatch", totalRichness, roundTrip, matches);
             bestMatches.push({
+                id: id++,
                 totalRichness,
                 roundTrip,
                 planets: nPlanets,

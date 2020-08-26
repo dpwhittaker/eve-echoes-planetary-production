@@ -60,6 +60,7 @@ function VirtualizedTable({
   onRowClick,
   rowHeight,
   title,
+  selectedId
 }) {
   const classes = useStyles();
 
@@ -158,6 +159,7 @@ function VirtualizedTable({
                 width={screenWidth}
                 sortBy={orderBy}
                 style={{height: screenWidth > screenHeight ? screenHeight : screenHeight}}
+                rowStyle={({index}) => index > -1 && sortedData[index].id === selectedId ? {backgroundColor: '#666'} : {undefined}}
                 onRowClick={onRowClick}
               >
                 {columns.map((column, index) => {
@@ -193,6 +195,7 @@ VirtualizedTable.defaultProps = {
   data: [],
   headerHeight: 48,
   rowHeight: 48,
+  selectedId: 0
 };
 
 VirtualizedTable.propTypes = {
@@ -201,6 +204,7 @@ VirtualizedTable.propTypes = {
   headerHeight: PropTypes.number,
   onRowClick: PropTypes.func,
   rowHeight: PropTypes.number,
+  selectedId: PropTypes.number,
 };
 
 export default VirtualizedTable;

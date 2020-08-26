@@ -50,6 +50,7 @@ function PlanetaryProductionPage() {
   const [richnessRange, setRichnessRange] = usePersistedState('richnessRange', [90, 200]);
   const [resources, setResources] = usePersistedState('resources', ['Lustering Alloy']);
   const [planetology, setPlanetology] = usePersistedState('planetology', 1);
+  const [roundTripJumps, setRoundTripJumps] = usePersistedState('roundTrips', 50);
   const [bestMatches, setBestMatches] = useState([]);
   const [working, setWorking] = useState(false);
   const [distanceMax, setDistanceMax] = useState(65);
@@ -57,6 +58,7 @@ function PlanetaryProductionPage() {
   const [systems, setSystems] = useState([]);
   const [matches, setMatches] = useState([]);
   const [details, setDetails] = useState([]);
+  const [selectedId, setSelectedId] = useState(0);
   // console.log(baseSystem, distanceRange, securityRange, richnessRange, resources);
 
   const isSmallScreen = useMediaQuery((theme) => theme.breakpoints.down('sm'));
@@ -73,8 +75,8 @@ function PlanetaryProductionPage() {
   }, [baseSystem, distanceRange, securityRange, resources, richnessRange]);
 
   useEffect(() => {
-    query.findBestMatches(matches, baseSystem, resources, planetology, Comlink.proxy(setBestMatches), Comlink.proxy(setWorking))
-  }, [matches, baseSystem, resources, planetology]);
+    query.findBestMatches(matches, baseSystem, resources, planetology, roundTripJumps, Comlink.proxy(setBestMatches), Comlink.proxy(setWorking))
+  }, [matches, baseSystem, resources, planetology, roundTripJumps]);
 
   const distanceMarks = useMemo(() => {
     const marks = [...Array(Math.round(distanceMax / 10)).keys()].map((value) => ({ value: value * 10, label: value * 10 }));
@@ -90,8 +92,10 @@ function PlanetaryProductionPage() {
       columns: renderOverviewColumns(),
       data: bestMatches,
       label: 'Best Matches',
+      selectedId,
       onRowClick: ({rowData}) => {
         setDetails(rowData.matches);
+        setSelectedId(rowData.id);
         if (tabRef && tabRef.current) {
           tabRef.current.setCurrentTab(1);
         }
@@ -189,6 +193,16 @@ function PlanetaryProductionPage() {
         onChange={(event, value) => setPlanetology(value)}
         step={1}
         value={planetology}
+      />
+
+      <Slider
+        label="Max Round Trip length (jumps)"
+        marks={[0, 50, 100, 150, 200].map(v=> ({value: v, label: `${v}`}))}
+        max={200}
+        min={0}
+        onChange={(event, value) => setRoundTripJumps(value)}
+        step={1}
+        value={roundTripJumps}
       />
 
       {isSmallScreen
