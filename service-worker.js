@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/eve-echoes-planetary-production/precache-manifest.8f75ed7e723e7be40a0ea83368502bc4.js"
+  "/eve-echoes-planetary-production/precache-manifest.d28fc06831b177a317a312df43b65b11.js"
 );
 
 self.addEventListener('message', (event) => {
