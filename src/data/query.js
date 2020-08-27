@@ -2,7 +2,7 @@ import * as Comlink from 'comlink';
 import data from './data.json';
 import c from './columns.js';
 
-const sleep = () => new Promise(r => setTimeout(r, 10));
+const sleep = () => new Promise(r => setTimeout(r, 1));
 const SLEEPLOOPS = 100000;
 const SENDMATCHDELAY = 100;
 
@@ -129,7 +129,7 @@ function shortestTrip(systems) {
 }
 
 let callNumber = 0;
-export async function findBestMatches(matches, from, resourceList, numPlanets, maxRoundTripJumps, setBestMatches, setWorking) {
+export async function findBestMatches(matches, from, resourceList, numPlanets, maxRoundTripJumps, setBestMatches, setProgress) {
     let thisCallNumber = ++callNumber;
     let id = 0;
     let start = performance.now();
@@ -176,7 +176,7 @@ export async function findBestMatches(matches, from, resourceList, numPlanets, m
         matches
     }];
     setBestMatches(bestMatches);
-    setWorking(true);
+    setProgress(0);
     await sleep();
     let setup = performance.now();
     let choices = [];
@@ -208,7 +208,8 @@ export async function findBestMatches(matches, from, resourceList, numPlanets, m
             boundRoundTrips++;
             return;
         }
-        if (choices.length < 2) {
+        if (choices.length === 1) {
+            setProgress(progress[0] * 100 / progressDenominator[0])
             console.log(
                 callNumber,
                 progress.map((p, i) => p / progressDenominator[i]).join(' '),
@@ -243,7 +244,6 @@ export async function findBestMatches(matches, from, resourceList, numPlanets, m
                 setBestMatches(bestMatches.slice(0));
                 lastMatchSend = performance.now();
             }
-            await sleep();
             return;
         }
 
@@ -275,7 +275,7 @@ export async function findBestMatches(matches, from, resourceList, numPlanets, m
     await recurse();
     if (thisCallNumber !== callNumber) return;
     setBestMatches(bestMatches);
-    setWorking(false);
+    setProgress(100);
     let end = performance.now();
     console.log(`Setup time: ${setup - start}ms, Recurse time: ${end - setup}ms`);
     return bestMatches;
@@ -294,7 +294,7 @@ export function getSystems() {
 }
 
 export function getResources() {
-    return Object.keys(data.maxOutput);
+    return Object.keys(data.maxOutput).sort();
 }
 
 export function getResourceMaxOutput() {

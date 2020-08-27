@@ -52,7 +52,7 @@ function PlanetaryProductionPage() {
   const [planetology, setPlanetology] = usePersistedState('planetology', 1);
   const [roundTripJumps, setRoundTripJumps] = usePersistedState('roundTrips', 50);
   const [bestMatches, setBestMatches] = useState([]);
-  const [working, setWorking] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [distanceMax, setDistanceMax] = useState(65);
   const [resourceNames, setResourceNames] = useState(['Lustering Alloy']);
   const [systems, setSystems] = useState([]);
@@ -75,7 +75,7 @@ function PlanetaryProductionPage() {
   }, [baseSystem, distanceRange, securityRange, resources, richnessRange]);
 
   useEffect(() => {
-    query.findBestMatches(matches, baseSystem, resources, planetology, roundTripJumps, Comlink.proxy(setBestMatches), Comlink.proxy(setWorking))
+    query.findBestMatches(matches, baseSystem, resources, planetology, roundTripJumps, Comlink.proxy(setBestMatches), Comlink.proxy(setProgress))
   }, [matches, baseSystem, resources, planetology, roundTripJumps]);
 
   const distanceMarks = useMemo(() => {
@@ -113,7 +113,7 @@ function PlanetaryProductionPage() {
 
   const queryLoader = (
     <Grid item xs={12}>
-      <LinearProgress value={100} variant={working ? 'indeterminate' : 'determinate'}/>
+      <LinearProgress value={progress} variant={'determinate'}/>
     </Grid>
   );
 
