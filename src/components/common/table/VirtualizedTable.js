@@ -14,6 +14,10 @@ import classNames from 'classnames';
 
 import { TableHeader } from './';
 
+// h5 component height + bottom margin (32 + 8.4)
+const tableTitleHeight = 32;
+const tableTitleAdjustment = tableTitleHeight + 8.4;
+
 const useStyles = makeStyles((theme) => createStyles({
   flexContainer: {
     display: 'flex',
@@ -22,8 +26,7 @@ const useStyles = makeStyles((theme) => createStyles({
   },
   root: {
     // height = screen height - grid padding
-    height: `calc(100vh - (${theme.spacing(4)}px * 3))`,
-    marginBottom: theme.spacing(4)
+    height: `calc(100vh - (${theme.spacing(4)}px * 2))`,
   },
   table: {
     // temporary right-to-left patch, waiting for
@@ -45,6 +48,7 @@ const useStyles = makeStyles((theme) => createStyles({
     flex: 1,
   },
   title: {
+    height: tableTitleHeight,
     marginLeft: theme.spacing(1),
     width: 'max-content',
   },
@@ -137,6 +141,7 @@ function VirtualizedTable({
     <div className={classes.root}>
       <AutoSizer>
         {({ height: screenHeight, width: screenWidth }) => {
+          const tableHeight = title ? screenHeight - tableTitleAdjustment : screenHeight;
           return (
             <>
               <Typography
@@ -150,7 +155,7 @@ function VirtualizedTable({
                 className={classes.table}
                 gridStyle={{ direction: 'inherit' }}
                 headerHeight={headerHeight}
-                height={screenHeight}
+                height={tableHeight}
                 noRowsRenderer={() => <div>No results.</div>}
                 rowClassName={getRowClassName}
                 rowCount={sortedData.length}
@@ -158,7 +163,6 @@ function VirtualizedTable({
                 rowHeight={rowHeight}
                 width={screenWidth}
                 sortBy={orderBy}
-                style={{height: screenWidth > screenHeight ? screenHeight : screenHeight}}
                 rowStyle={({index}) => index > -1 && sortedData[index].id === selectedId ? {backgroundColor: '#666'} : {undefined}}
                 onRowClick={onRowClick}
               >

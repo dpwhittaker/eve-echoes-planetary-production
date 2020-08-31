@@ -14,7 +14,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container maxWidth="lg" style={{ marginTop: 16 }}>
+      <Container maxWidth="xl" style={{ marginTop: 16 }}>
         <PlanetaryProductionPage />
       </Container>
     </ThemeProvider>

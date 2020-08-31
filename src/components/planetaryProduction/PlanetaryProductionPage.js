@@ -22,6 +22,7 @@ import {
   SelectWithChips,
   Slider,
 } from '../common/form';
+import Map from '../common/network/Map';
 import { VirtualizedTable } from '../common/table';
 import { Tabs } from '../common/tabs';
 import renderSystemColumns from './renderSystemColumns';
@@ -91,6 +92,11 @@ function PlanetaryProductionPage() {
       Component: VirtualizedTable,
       columns: renderOverviewColumns(),
       data: bestMatches,
+      grid: {
+        md: 6,
+        lg: 4,
+        xl: 3,
+      },
       label: 'Best Matches',
       selectedId,
       onRowClick: ({rowData}) => {
@@ -102,14 +108,26 @@ function PlanetaryProductionPage() {
       },
       title: isSmallScreen ?  undefined : 'Best Matches',
     },
+    // {
+    //   Component: VirtualizedTable,
+    //   columns: renderSystemColumns(),
+    //   data: details,
+    //   label: 'Details',
+    //   title: isSmallScreen ? undefined : 'Details',
+    // },
     {
-      Component: VirtualizedTable,
-      columns: renderSystemColumns(),
-      data: details,
-      label: 'Details',
-      title: isSmallScreen ? undefined : 'Details',
-    },
-  ], [bestMatches, details, isSmallScreen]);
+      Component: Map,
+      // path: [{id, source, target}],
+      // details: [{id, region, constellation, system, security}],
+      grid: {
+        md: 6,
+        lg: 8,
+        xl: 9,
+      },
+      label: 'Map',
+      title: isSmallScreen ? undefined : 'Map',
+    }
+  ], [bestMatches, details, isSmallScreen, selectedId]);
 
   const queryLoader = (
     <Grid item xs={12}>
@@ -216,8 +234,8 @@ function PlanetaryProductionPage() {
         : (
           <>
             {queryLoader}
-            {tableConfigs.map(({ Component, ...tab }, index) => (
-              <Grid key={index} item md={6}>
+            {tableConfigs.map(({ Component, grid, ...tab }, index) => (
+              <Grid key={index} item md={6} {...grid}>
                 <Component {...tab} />
               </Grid>
             ))}
