@@ -26,6 +26,10 @@ import { VirtualizedTable } from '../common/table';
 import { Tabs } from '../common/tabs';
 import renderSystemColumns from './renderSystemColumns';
 import renderOverviewColumns from './renderOverviewColumns';
+import data from '../../data/data.json';
+import { NetworkFrame } from 'semiotic';
+import ForceGraph3D from 'react-force-graph-3d';
+import ForceGraph2D from 'react-force-graph-2d';
 
 const query = Comlink.wrap(new Query());
 
@@ -59,6 +63,8 @@ function PlanetaryProductionPage() {
   const [matches, setMatches] = useState([]);
   const [details, setDetails] = useState([]);
   const [selectedId, setSelectedId] = useState(0);
+  const [neighborhood, setNeighborhood] = useState({nodes: [], links: []});
+  const fgRef = useRef();
   // console.log(baseSystem, distanceRange, securityRange, richnessRange, resources);
 
   const isSmallScreen = useMediaQuery((theme) => theme.breakpoints.down('sm'));
@@ -75,8 +81,13 @@ function PlanetaryProductionPage() {
   }, [baseSystem, distanceRange, securityRange, resources, richnessRange]);
 
   useEffect(() => {
-    query.findBestMatches(matches, baseSystem, resources, planetology, roundTripJumps, Comlink.proxy(setBestMatches), Comlink.proxy(setProgress))
+    //query.findBestMatches(matches, baseSystem, resources, planetology, roundTripJumps, Comlink.proxy(setBestMatches), Comlink.proxy(setProgress))
   }, [matches, baseSystem, resources, planetology, roundTripJumps]);
+
+  useEffect(() => {
+    query.neighborhood(baseSystem, distanceRange[1])
+      .then(n => setNeighborhood(n));
+  }, [baseSystem, distanceRange[1]]);
 
   const distanceMarks = useMemo(() => {
     const marks = [...Array(Math.round(distanceMax / 10)).keys()].map((value) => ({ value: value * 10, label: value * 10 }));
@@ -85,6 +96,13 @@ function PlanetaryProductionPage() {
     }
     return marks;
   }, [distanceMax]);
+
+  useEffect(() => {
+    const fg = fgRef.current;
+    if (!fg) return;
+
+    fg.d3Force('charge', fg.d3Force('charge').distanceMax(1000));
+  }, [systems]);
 
   const tableConfigs = useMemo(() => [
     {
@@ -204,6 +222,28 @@ function PlanetaryProductionPage() {
         step={1}
         value={roundTripJumps}
       />
+
+      <Grid item xs={12}>
+        <ForceGraph2D
+          ref={fgRef}
+          graphData={neighborhood}
+          width={1280}
+          height={800}
+          nodeColor={
+            n => n.id === baseSystem ? "#9999ff" : n.id === 0 ? "#ff99ff" : "#" + 
+              (n.security < 0 ? "ff" : parseInt((1 - n.security)*255).toString(16).padStart(2, '0')) + 
+              (n.security > 0 ? "ff" : parseInt((n.security + 1)*255).toString(16).padStart(2, '0')) +
+              "00"
+          }
+          nodeVal={n => n.id === baseSystem || n.id === 0 ? 10 : 1}
+          nodeLabel={n => `${n.name}\n${n.security}`}
+          nodeRelSize={10}
+          d3AlphaDecay={0.001}
+          d3VelocityDecay={0.01}
+          cooldownTime={50000}
+          onEngineTick={() => fgRef.current.zoomToFit(1000)}
+        />
+      </Grid>
 
       {isSmallScreen
         ? (

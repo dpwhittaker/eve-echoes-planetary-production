@@ -63,6 +63,25 @@ export function systemsWithinRange(from, range, security) {
     return sys;
 }
 
+export function neighborhood(from, range) {
+    let jumps = systems[from].shortestPaths;
+    let nodes = [];
+    let links = [];
+    for (let i = 0; i < jumps.length; i++)
+        if (jumps[i] <= range)
+            nodes.push({
+                id: i,
+                name: systems[i][c.System],
+                security: systems[i][c.Security]
+            });
+    for (let node of nodes)
+        for (let neighbor of systems[node.id][c.Neighbors])
+            if (jumps[neighbor] <= range)
+                 links.push({source: node.id, target: neighbor});
+    nodes.sort((a, b) => jumps[a.id] - jumps[b.id]);
+    return { nodes, links };
+}
+
 export function matchingProduction(from, range, security, richness, resourceList) {
     let inRange = systemsWithinRange(from, range, security);
     let [minRich, maxRich] = richness;
@@ -308,6 +327,7 @@ Comlink.expose({
     shortestPath,
     longestPath,
     systemsWithinRange,
+    neighborhood,
     matchingProduction,
     findBestMatches,
     getSystems,
