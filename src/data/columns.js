@@ -3,8 +3,11 @@ const COL = {
     Constellation: 1,
     System: 2,
     Security: 3,
-    Neighbors: 4,
-    Planets: 5,
+    x: 4,
+    y: 5,
+    z: 6,
+    Neighbors: 7,
+    Planets: 8,
 
     Planet: 0,
     PlanetType: 1,
