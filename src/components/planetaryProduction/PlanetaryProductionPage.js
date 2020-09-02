@@ -59,7 +59,9 @@ function PlanetaryProductionPage() {
   const [systems, setSystems] = useState([]);
   const [matches, setMatches] = useState([]);
   const [details, setDetails] = useState([]);
+  const [route, setRoute] = useState([]);
   const [selectedId, setSelectedId] = useState(0);
+  const [neighborhood, setNeighborhood] = useState({nodes: [], links: []});
   // console.log(baseSystem, distanceRange, securityRange, richnessRange, resources);
 
   const isSmallScreen = useMediaQuery((theme) => theme.breakpoints.down('sm'));
@@ -78,6 +80,12 @@ function PlanetaryProductionPage() {
   useEffect(() => {
     query.findBestMatches(matches, baseSystem, resources, planetology, roundTripJumps, Comlink.proxy(setBestMatches), Comlink.proxy(setProgress))
   }, [matches, baseSystem, resources, planetology, roundTripJumps]);
+
+  useEffect(() => {
+    console.log('calculating neighborhood');
+    query.neighborhood(baseSystem, distanceRange[1])
+      .then(n => setNeighborhood(n));
+  }, [baseSystem, distanceRange[1]]);
 
   const distanceMarks = useMemo(() => {
     const marks = [...Array(Math.round(distanceMax / 10)).keys()].map((value) => ({ value: value * 10, label: value * 10 }));
@@ -100,7 +108,9 @@ function PlanetaryProductionPage() {
       label: 'Best Matches',
       selectedId,
       onRowClick: ({rowData}) => {
+        console.log("click", rowData);
         setDetails(rowData.matches);
+        setRoute(rowData.route);
         setSelectedId(rowData.id);
         if (tabRef && tabRef.current) {
           tabRef.current.setCurrentTab(1);
@@ -117,8 +127,10 @@ function PlanetaryProductionPage() {
     // },
     {
       Component: Map,
-      // path: [{id, source, target}],
-      // details: [{id, region, constellation, system, security}],
+      ...neighborhood,
+      baseSystem,
+      details,
+      route,
       grid: {
         md: 6,
         lg: 8,

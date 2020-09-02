@@ -3,13 +3,14 @@ import data from './data.json';
 import c from './columns.js';
 
 const sleep = () => new Promise(r => setTimeout(r, 1));
-const SLEEPLOOPS = 100000;
-const SENDMATCHDELAY = 100;
+const SLEEPLOOPS = 10000;
+const SENDMATCHDELAY = 1000;
 
 let systems = data.data;
 
 function calculatePaths(from) {
     let jumps = systems[from].shortestPaths;
+    let routes = systems[from].routes;
     let queue = [];
     queue.push(from);
     while (queue.length > 0) {
@@ -18,11 +19,23 @@ function calculatePaths(from) {
         for (let next of system[c.Neighbors]) {
             if (jumps[next] === -1) {
                 jumps[next] = jumps[node] + 1;
+                routes[next] = node;
                 queue.push(next);
             }
         }
     }
     return jumps;
+}
+
+function findRoute(from, to) {
+    if (from === to) return [];
+    let routes = systems[from].routes;
+    let route = [to];
+    while (routes[to] != from) {
+        to = routes[to];
+        route.push(to);
+    }
+    return route.reverse();
 }
 
 function initSystems() {
@@ -31,6 +44,8 @@ function initSystems() {
         let system = systems[i];
         system.shortestPaths = systems.map(s => -1);
         system.shortestPaths[i] = 0;
+        system.routes = systems.map(s => -1);
+        system.routes[i] = 0;
         calculatePaths(i);
     }
     let end = performance.now();
@@ -60,7 +75,35 @@ export function systemsWithinRange(from, range, security) {
            )
             sys.push({system: system, jumps: jumps[system]});
     }
+    console.log(`systems witin range: ${sys.length}`)
     return sys;
+}
+
+export function neighborhood(from, range) {
+    let jumps = systems[from].shortestPaths;
+    let nodes = [];
+    let links = [];
+    for (let i = 0; i < jumps.length; i++) {
+        if (jumps[i] <= range && jumps[i] > -1)
+            nodes.push({
+                id: i,
+                region: systems[i][c.Region],
+                constellation: systems[i][c.Constellation],
+                system: systems[i][c.System],
+                security: systems[i][c.Security],
+                stations: systems[i][c.Stations],
+                fx: systems[i][c.x] / 1e14,
+                fy: systems[i][c.y] / 1e14,
+                fz: systems[i][c.z] / 1e14
+            });
+    }
+    for (let node of nodes)
+        for (let neighbor of systems[node.id][c.Neighbors])
+            if (jumps[neighbor] <= range)
+                 links.push({id: node.id * 100000 + neighbor, source: node.id, target: neighbor});
+    nodes.sort((a, b) => jumps[a.id] - jumps[b.id]);
+    console.log("query", nodes.length, links.length);
+    return { nodes, links };
 }
 
 export function matchingProduction(from, range, security, richness, resourceList) {
@@ -92,12 +135,12 @@ export function matchingProduction(from, range, security, richness, resourceList
 
 //greedy travelling salesman - aka human approach
 function shortestTripGreedy(systemList) {
-    let route = [systemList[0]];
+    let trip = [systemList[0]];
     let todo = systemList.slice(1);
     let todolen = todo.length;
     let roundTrip = 0;
     while (true) {
-        let last = route[route.length - 1];
+        let last = trip[trip.length - 1];
         let shortest = 99999999;
         let shortestIndex = -1;
         for (let i = 0; i < todolen; i++) {
@@ -109,23 +152,31 @@ function shortestTripGreedy(systemList) {
             }
         }
         if (shortestIndex === -1) break;
-        route.push(todo[shortestIndex]);
+        trip.push(todo[shortestIndex]);
         todo[shortestIndex] = todo[--todolen];
         roundTrip += shortest;
     }
-    roundTrip += shortestPath(route[route.length - 1], systemList[0]);
-    return roundTrip;
+    roundTrip += shortestPath(trip[trip.length - 1], systemList[0]);
+    return [roundTrip, trip];
 }
 
 function shortestTrip(systems) {
-    let route = systems.slice(0);
-    let shortest = shortestTripGreedy(route);
+    let systemList = systems.slice(0);
+    let [shortest, trip] = shortestTripGreedy(systemList);
     for (let i = 0; i < systems.length - 1; i++) {
-        route.push(route.shift());
-        let trip = shortestTripGreedy(route);
-        if (trip < shortest) shortest = trip;
+        systemList.push(systemList.shift());
+        let [next, ntrip] = shortestTripGreedy(systemList);
+        if (next < shortest) {
+            [shortest, trip] = [next, ntrip];
+        }
     }
-    return shortest;
+    while (trip[0] !== systems[0]) trip.push(trip.shift());
+    let route = [trip[0]];
+    for (let i = 1; i < trip.length; i++) {
+        route = route.concat(findRoute(trip[i-1], trip[i]));
+    }
+    route = route.concat(findRoute(trip[trip.length-1], trip[0]));
+    return [shortest, route, trip];
 }
 
 let callNumber = 0;
@@ -173,7 +224,8 @@ export async function findBestMatches(matches, from, resourceList, numPlanets, m
         roundTrip: '',
         planets: new Set(matches.map(m => m.planet)).size,
         systems: new Set(matches.map(m => m.systemId)).size,
-        matches
+        matches,
+        route: []
     }];
     setBestMatches(bestMatches);
     setProgress(0);
@@ -203,7 +255,7 @@ export async function findBestMatches(matches, from, resourceList, numPlanets, m
             boundRichness++;
             return;
         }
-        let roundTrip = shortestTrip([from, ...choices.map(c => c.systemId)]);
+        let [roundTrip, route, trip] = shortestTrip([from, ...choices.map(c => c.systemId)]);
         if (roundTrip > maxRoundTripJumps) {
             boundRoundTrips++;
             return;
@@ -231,7 +283,9 @@ export async function findBestMatches(matches, from, resourceList, numPlanets, m
                 roundTrip,
                 planets: nPlanets,
                 systems: nSystems,
-                matches
+                matches,
+                route,
+                trip
             });
             //bubble sort it up, leave ALL in [0]
             for (let i = bestMatches.length - 1; i > 1; i--) {
@@ -294,7 +348,7 @@ export function getSystems() {
 }
 
 export function getResources() {
-    return Object.keys(data.maxOutput).sort();
+    return data.resources.sort();
 }
 
 export function getResourceMaxOutput() {
@@ -312,5 +366,6 @@ Comlink.expose({
     findBestMatches,
     getSystems,
     getResources,
-    getResourceMaxOutput
+    getResourceMaxOutput,
+    neighborhood
 })
