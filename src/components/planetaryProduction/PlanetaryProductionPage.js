@@ -82,9 +82,12 @@ function PlanetaryProductionPage() {
   }, [matches, baseSystem, resources, planetology, roundTripJumps]);
 
   useEffect(() => {
-    console.log('calculating neighborhood');
+    console.log(`calculating neighborhood for ${baseSystem} range ${distanceRange[1]}`);
     query.neighborhood(baseSystem, distanceRange[1])
-      .then(n => setNeighborhood(n));
+      .then(n => {
+        console.log('got neighborhood', n);
+        setNeighborhood(n);
+      });
   }, [baseSystem, distanceRange[1]]);
 
   const distanceMarks = useMemo(() => {
@@ -109,6 +112,7 @@ function PlanetaryProductionPage() {
       selectedId,
       onRowClick: ({rowData}) => {
         console.log("click", rowData);
+        window.scrollTo(0,document.body.scrollHeight);
         setDetails(rowData.matches);
         setRoute(rowData.route);
         setSelectedId(rowData.id);
@@ -117,14 +121,21 @@ function PlanetaryProductionPage() {
         }
       },
       title: isSmallScreen ?  undefined : 'Best Matches',
+      rowHeight: 40,
     },
-    // {
-    //   Component: VirtualizedTable,
-    //   columns: renderSystemColumns(),
-    //   data: details,
-    //   label: 'Details',
-    //   title: isSmallScreen ? undefined : 'Details',
-    // },
+    {
+      Component: VirtualizedTable,
+      columns: renderSystemColumns(),
+      grid: {
+        md: 6,
+        lg: 4,
+        xl: 3,
+      },
+      data: details,
+      label: 'Details',
+      title: isSmallScreen ? undefined : 'Details',
+      rowHeight: 40,
+    },
     {
       Component: Map,
       ...neighborhood,
@@ -239,18 +250,20 @@ function PlanetaryProductionPage() {
         ? (
           <Tabs ref={tabRef} tabs={tableConfigs} subNav={queryLoader}>
             {tableConfigs.map(({ Component, ...tab }, index) => (
-              <Component key={index} {...tab} />
+              <Component key={index} {...tab} isSmallScreen={isSmallScreen} />
             ))}
           </Tabs>
         )
         : (
           <>
             {queryLoader}
-            {tableConfigs.map(({ Component, grid, ...tab }, index) => (
-              <Grid key={index} item md={6} {...grid}>
-                <Component {...tab} />
-              </Grid>
-            ))}
+            <Grid item {...tableConfigs[0].grid}>
+              <VirtualizedTable {...tableConfigs[0]} isSmallScreen={isSmallScreen} />
+              <VirtualizedTable {...tableConfigs[1]} isSmallScreen={isSmallScreen} marginTop={16} />
+            </Grid>
+            <Grid item {...tableConfigs[2].grid}>
+              <Map {...tableConfigs[2]} />
+            </Grid>
           </>
         )
       }

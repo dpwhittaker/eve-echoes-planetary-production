@@ -64,7 +64,9 @@ function VirtualizedTable({
   onRowClick,
   rowHeight,
   title,
-  selectedId
+  selectedId,
+  isSmallScreen,
+  marginTop
 }) {
   const classes = useStyles();
 
@@ -109,8 +111,10 @@ function VirtualizedTable({
         align={(columnIndex != null && columns[columnIndex].numeric) || false ? 'right' : 'left'}
         component="div"
         className={cellClasses}
-        style={{ height: rowHeight }}
+        style={{ height: rowHeight, padding: 5 }}
         variant="body"
+        size="small"
+        padding="none"
       >
         {cellData}
       </TableCell>
@@ -123,8 +127,10 @@ function VirtualizedTable({
         className={classNames(classes.tableCell, classes.flexContainer, classes.noClick)}
         column={column}
         component="div"
-        style={{ height: headerHeight }}
+        style={{ height: headerHeight, padding: 5 }}
         variant="head"
+        size="small"
+        padding="none"
         {...rest}
       >
         {column.label}
@@ -138,7 +144,7 @@ function VirtualizedTable({
   }
 
   return (
-    <div className={classes.root}>
+    <div style={{height: `calc(${isSmallScreen ? 100 : 50}vh - (40px))`, marginTop}}>
       <AutoSizer>
         {({ height: screenHeight, width: screenWidth }) => {
           const tableHeight = title ? screenHeight - tableTitleAdjustment : screenHeight;

@@ -41,10 +41,11 @@ function findRoute(from, to) {
 function initSystems() {
     let start = performance.now();
     for (let i = 0; i < systems.length; i++) {
+        console.log('initSystems', i, '/', systems.length);
         let system = systems[i];
-        system.shortestPaths = systems.map(s => -1);
+        system.shortestPaths = new Int8Array(systems.map(s => -1));
         system.shortestPaths[i] = 0;
-        system.routes = systems.map(s => -1);
+        system.routes = new Int16Array(systems.map(s => -1));
         system.routes[i] = 0;
         calculatePaths(i);
     }
